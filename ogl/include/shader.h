@@ -1,6 +1,23 @@
 #ifndef SHADER_H
 #define SHADER_H
 
+#include "vec3.h"
+#include <iostream>
+#include <GL/glew.h>
+
+/*class Shader {
+private:
+public:
+    Shader() : v(Vec3(10.0)) {}
+    Vec3 v;
+};
+
+int main() {
+    Shader s;
+    std::cout << s.v.x << std::endl;
+    return 0;
+}*/
+/*
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -9,7 +26,6 @@
 #include <cassert>
 #include <map>
 #include <GL/glew.h>
-#include <glm/glm.hpp>
 
 #include "bufferattribute.h"
 
@@ -50,7 +66,7 @@ private:
     GLuint program;
     bool linked;
     string name;
-};
+};*/
 
 
 #endif

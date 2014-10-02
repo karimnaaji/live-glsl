@@ -1,9 +1,10 @@
 #include <iostream>
 #include "shader.h"
+#include "GLFW/glfw3.h"
 
 using namespace std;
 
 int main(void) {
-	Shader *shader;
+    cout << "Hello world" << endl;
 	return 0;
 }

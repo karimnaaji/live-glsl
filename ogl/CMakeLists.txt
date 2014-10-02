@@ -1,5 +1,14 @@
-file(GLOB_RECURSE OGL_SOURCES *.cpp)
-file(GLOB_RECURSE OGL_HEADERS *.h)
+cmake_minimum_required(VERSION 2.8)
+project(ogl)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -stdlib=libc++ -std=c++0x")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/include")
+set(CXX_FLAGS_DEBUG "-g -O0")
+
+option(BUILD_TEST "Build test" ON)
+
+file(GLOB_RECURSE OGL_SOURCES src/*.cpp)
+file(GLOB_RECURSE OGL_HEADERS include/*.h)
 
 set(OGL_INCLUDE_DIRS "")
 foreach(_headerFile ${OGL_HEADERS})
@@ -9,16 +18,21 @@ endforeach()
 list(REMOVE_DUPLICATES OGL_INCLUDE_DIRS)
 include_directories(${OGL_INCLUDE_DIRS})
 
-add_library(ogl STATIC ${OGL_SOURCES})
-
 find_package(OpenGL REQUIRED)
-find_package(GLM REQUIRED)
 find_package(GLEW REQUIRED)
-find_package(GLFW REQUIRED)
 
-include_directories(${GLEW_INCLUDE_DIRS})
+add_subdirectory(${PROJECT_SOURCE_DIR}/deps/math/)
+include_directories(${PROJECT_SOURCE_DIR}/deps/math/include)
+
 include_directories(${OpenGL_INCLUDE_DIRS})
-include_directories(${GLM_INCLUDE_DIRS})
-include_directories(${GLFW_INCLUDE_DIR})
+include_directories(${GLEW_INCLUDE_DIRS})
 
-target_link_libraries(ogl ${GLFW_LIBRARY} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
+add_library(ogl STATIC ${OGL_SOURCES})
+set(LIBS math ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
+target_link_libraries(ogl ${LIBS})
+
+if(BUILD_TEST EQUAL ON) 
+	message(STATUS "Build test on ogl library")
+	add_executable(ogl.out ${OGL_SOURCES})
+	target_link_libraries(ogl.out ${LIBS})
+endif()

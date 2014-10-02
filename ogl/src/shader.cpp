@@ -1,5 +1,5 @@
 #include "shader.h"
-
+/*
 Shader::Shader(string shaderName) : name(shaderName) {
     linked = false;
 }
@@ -7,8 +7,8 @@ Shader::Shader(string shaderName) : name(shaderName) {
 void Shader::init(const map<string, BufferAttribute>& attributes) {
     program = glCreateProgram();
 
-    string fragName = SHADER_PATH + name + string(".frag");
-    string vertName = SHADER_PATH + name + string(".vert");
+    string fragName = name + string(".frag");
+    string vertName = name + string(".vert");
 
     try {
         vertex = createShader(GL_VERTEX_SHADER, vertName);
@@ -139,12 +139,12 @@ GLint Shader::uniform(string uniformName) const {
 
 void Shader::sendUniform(string name, const mat4& mat) const {
     assert(isInUse());
-    glUniformmat4fv(uniform(name), 1, GL_FALSE, &mat.array[0]);
+    glUniformMatrix4fv(uniform(name), 1, GL_FALSE, &mat[0][0]);
 }
 
 void Shader::sendUniform(string name, const mat3& mat) const {
     assert(isInUse());
-    glUniformmat3fv(uniform(name), 1, GL_FALSE, &mat.array[0]);
+    glUniformMatrix3fv(uniform(name), 1, GL_FALSE, &mat[0][0]);
 }
 
 void Shader::sendUniform(string name, float value) const {
@@ -159,15 +159,15 @@ void Shader::sendUniform(string name, int value) const {
 
 void Shader::sendUniform(string name, const vec2& vec) const {
     assert(isInUse());
-    glUniform2f(uniform(name), vec.v[0], vec.v[1]);
+    glUniform2f(uniform(name), vec.x, vec.y);
 }
 
 void Shader::sendUniform(string name, const vec3& vec) const {
     assert(isInUse());
-    glUniform3f(uniform(name), vec.v[0], vec.v[1], vec.v[2]);
+    glUniform3f(uniform(name), vec.x, vec.y, vec.z);
 }
 
 void Shader::sendUniform(string name, const vec4& vec) const {
     assert(isInUse());
-    glUniform4f(uniform(name), vec.v[0], vec.v[1], vec.v[2], vec.v[3]);
-}
+    glUniform4f(uniform(name), vec.x, vec.y, vec.z, vec.w);
+}*/
