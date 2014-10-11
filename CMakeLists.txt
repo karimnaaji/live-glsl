@@ -26,4 +26,4 @@ include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/include)
 
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
-target_link_libraries(${EXECUTABLE_NAME} ogl ${GLFW_LIBRARIES})
+target_link_libraries(${EXECUTABLE_NAME} ogl glfw ${GLFW_LIBRARIES})
