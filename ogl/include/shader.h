@@ -1,23 +1,6 @@
 #ifndef SHADER_H
 #define SHADER_H
 
-#include "vec3.h"
-#include <iostream>
-#include <GL/glew.h>
-
-/*class Shader {
-private:
-public:
-    Shader() : v(Vec3(10.0)) {}
-    Vec3 v;
-};
-
-int main() {
-    Shader s;
-    std::cout << s.v.x << std::endl;
-    return 0;
-}*/
-/*
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -28,9 +11,9 @@ int main() {
 #include <GL/glew.h>
 
 #include "bufferattribute.h"
+#include "oglmath.h"
 
 using namespace std;
-using namespace glm;
 
 class Shader {
 public:
@@ -46,11 +29,11 @@ public:
 
     void sendUniform(string name, float value) const;
     void sendUniform(string name, int value) const;
-    void sendUniform(string name, const mat4& mat) const;
-    void sendUniform(string name, const mat3& mat) const;
-    void sendUniform(string name, const vec2& vec) const;
-    void sendUniform(string name, const vec3& vec) const;
-    void sendUniform(string name, const vec4& vec) const;
+    void sendUniform(string name, const Matrix4& mat) const;
+    void sendUniform(string name, const Matrix3& mat) const;
+    void sendUniform(string name, const Vec2& vec) const;
+    void sendUniform(string name, const Vec3& vec) const;
+    void sendUniform(string name, const Vec4& vec) const;
 
     void setAttribute(BufferAttribute attribute, const string& name);
 
@@ -66,7 +49,7 @@ private:
     GLuint program;
     bool linked;
     string name;
-};*/
+};
 
 
 #endif

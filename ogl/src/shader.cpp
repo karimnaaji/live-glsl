@@ -1,5 +1,5 @@
 #include "shader.h"
-/*
+
 Shader::Shader(string shaderName) : name(shaderName) {
     linked = false;
 }
@@ -137,14 +137,14 @@ GLint Shader::uniform(string uniformName) const {
     return uniform;
 }
 
-void Shader::sendUniform(string name, const mat4& mat) const {
+void Shader::sendUniform(string name, const Matrix4& mat) const {
     assert(isInUse());
-    glUniformMatrix4fv(uniform(name), 1, GL_FALSE, &mat[0][0]);
+    glUniformMatrix4fv(uniform(name), 1, GL_FALSE, &mat.array[0]);
 }
 
-void Shader::sendUniform(string name, const mat3& mat) const {
+void Shader::sendUniform(string name, const Matrix3& mat) const {
     assert(isInUse());
-    glUniformMatrix3fv(uniform(name), 1, GL_FALSE, &mat[0][0]);
+    glUniformMatrix3fv(uniform(name), 1, GL_FALSE, &mat.array[0]);
 }
 
 void Shader::sendUniform(string name, float value) const {
@@ -157,17 +157,17 @@ void Shader::sendUniform(string name, int value) const {
     glUniform1i(uniform(name), value);
 }
 
-void Shader::sendUniform(string name, const vec2& vec) const {
+void Shader::sendUniform(string name, const Vec2& vec) const {
     assert(isInUse());
     glUniform2f(uniform(name), vec.x, vec.y);
 }
 
-void Shader::sendUniform(string name, const vec3& vec) const {
+void Shader::sendUniform(string name, const Vec3& vec) const {
     assert(isInUse());
     glUniform3f(uniform(name), vec.x, vec.y, vec.z);
 }
 
-void Shader::sendUniform(string name, const vec4& vec) const {
+void Shader::sendUniform(string name, const Vec4& vec) const {
     assert(isInUse());
     glUniform4f(uniform(name), vec.x, vec.y, vec.z, vec.w);
-}*/
+}
