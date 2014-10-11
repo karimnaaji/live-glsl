@@ -10,7 +10,7 @@ FileWatcher::~FileWatcher() {
 }
 
 void FileWatcher::startWatching() {
-    ctx_desc ctxDesc = new ctx_desc;
+    ctxDesc = new ctx_desc;
     ctxDesc->len = 0;
     ctxDesc->size = 2;
     ctxDesc->paths = new char*[ctxDesc->size];
@@ -24,13 +24,7 @@ void FileWatcher::startWatching() {
     FSEventStreamRef stream;
     FSEventStreamCreateFlags flags = kFSEventStreamCreateFlagFileEvents;
 
-    stream = FSEventStreamCreate(NULL,
-        &eventCallback,
-        &ctx,
-        path,
-        kFSEventStreamEventIdSinceNow,
-        0,
-        flags);
+    stream = FSEventStreamCreate(NULL, &eventCallback, &ctx, path, kFSEventStreamEventIdSinceNow, 0, flags);
 
     FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
     FSEventStreamStart(stream);
@@ -56,7 +50,10 @@ void eventCallback(ConstFSEventStreamRef streamRef,
     void *paths,
     const FSEventStreamEventFlags flags[],
     const FSEventStreamEventId ids[]) {
-    printf("event callback");
-    ctx_desc *ctxDesc = (ctx_desc *)ctx;
-    ctxDesc->watcher->processEvent();
+    for (size_t i = 0; i < count; i++) {
+        ctx_desc *ctxDesc = (ctx_desc *)ctx;
+        ctxDesc->watcher->processEvent();
+        char *path = ((char **)paths)[i];
+        printf("%llu \n", ids[i]);
+    }
 }
