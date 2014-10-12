@@ -232,6 +232,11 @@ void renderingThread(const string& fragShaderPath) {
     glfwTerminate();
 }
 
+void clean() {
+    glDeleteBuffers(1, &vbo);
+    glDeleteProgram(shaderProgram);
+}
+
 int main(int argc, char **argv) {
     if(argc < 2) {
         handleError("Provide fragment shader argument", -1);
@@ -254,6 +259,7 @@ int main(int argc, char **argv) {
         default: {
             renderingThread(fragShaderPath);
             kill(pid, SIGKILL);
+            clean();
         }
     }
 
