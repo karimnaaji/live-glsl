@@ -60,7 +60,7 @@ GLuint compileShader(const GLchar* src, GLenum type)
     {
         printShaderInfoLog(shader);
         glDeleteShader(shader);
-        exit(-1);
+        return -1;
     }
     return shader;
 }
@@ -83,7 +83,7 @@ void loadShaderSource(const string& path, string* into) {
     file.close();
 }
 
-void linkShaderToProgram(GLuint program, const GLchar* source, GLenum type) {
+unsigned int linkShaderToProgram(GLuint program, const GLchar* source, GLenum type) {
     switch(type) {
         case GL_VERTEX_SHADER: {
             vertexId = compileShader(source, GL_VERTEX_SHADER);
@@ -92,6 +92,9 @@ void linkShaderToProgram(GLuint program, const GLchar* source, GLenum type) {
         break;
         case GL_FRAGMENT_SHADER: {
             fragmentId = compileShader(source, GL_FRAGMENT_SHADER);
+            if(fragmentId == -1) {
+                return -1;
+            }
             glAttachShader(program, fragmentId);
         }
         break;
@@ -106,8 +109,10 @@ void linkShaderToProgram(GLuint program, const GLchar* source, GLenum type) {
     {
         printShaderInfoLog(program);
         glDeleteProgram(program);
-        exit(-1);
+        handleError("Linking failed", -1);
     }
+
+    return 0;
 }
 
 void initShader(const string& fragShaderPath) {
@@ -214,11 +219,9 @@ void renderingThread(const string& fragShaderPath) {
 
     initShader(fragShaderPath);
 
-    //int cpt = 0;
     while(!glfwWindowShouldClose(window)) {
         glfwSwapBuffers(window);
         if(fragHasChanged) {
-            cout << "reloading fragment shader" << endl;
             glDetachShader(shaderProgram, fragmentId);
             string fragSource;
             loadShaderSource(fragShaderPath, &fragSource);
