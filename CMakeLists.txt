@@ -12,9 +12,9 @@ set(SOURCES
     src/filewatcher.cpp
     )
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/ogl)
-include_directories(${CMAKE_SOURCE_DIR}/ogl/include)
-include_directories(${CMAKE_SOURCE_DIR}/ogl/deps/math/include)
+find_package(GLEW REQUIRED)
+
+include_directories(${GLEW_INCLUDE_DIRS})
 
 option(GLFW_BUILD_EXAMPLES OFF)
 option(GLFW_BUILD_TESTS OFF)
@@ -26,4 +26,4 @@ include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/include)
 
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
-target_link_libraries(${EXECUTABLE_NAME} ogl glfw ${GLFW_LIBRARIES})
+target_link_libraries(${EXECUTABLE_NAME} glfw ${GLFW_LIBRARIES} ${GLEW_LIBRARY})
