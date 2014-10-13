@@ -28,6 +28,9 @@ GLuint vertexId;
 pid_t pid;
 pid_t father;
 
+int width = 800;
+int height = 600;
+
 bool fragHasChanged = false;
 
 void handleError(const string& message, int exitStatus) {
@@ -39,8 +42,7 @@ void printShaderInfoLog(GLuint shader)
 {
     GLint length = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-    if(length > 1)
-    {
+    if(length > 1) {
         char* log = (char*)malloc(sizeof(char) * length);
         glGetShaderInfoLog(shader, length, NULL, log);
         printf("Log: %s\n", log);
@@ -56,8 +58,7 @@ GLuint compileShader(const GLchar* src, GLenum type)
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 
-    if(!status)
-    {
+    if(!status) {
         printShaderInfoLog(shader);
         glDeleteShader(shader);
         return -1;
@@ -72,7 +73,8 @@ void loadShaderSource(const string& path, string* into) {
     file.open(path.c_str());
 
     if(!file.is_open()) {
-        handleError("Opening file failure" + path, -1);
+		// TODO : fix this
+        //handleError("Opening file failure" + path, -1);
     }
 
     while(!file.eof()) {
@@ -105,8 +107,7 @@ unsigned int linkShaderToProgram(GLuint program, const GLchar* source, GLenum ty
     GLint linkStatus;
     glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
 
-    if(!linkStatus)
-    {
+    if(!linkStatus) {
         printShaderInfoLog(program);
         glDeleteProgram(program);
         handleError("Linking failed", -1);
@@ -152,6 +153,8 @@ void handleKeypress(unsigned char key, int x, int y) {
 }
 
 void handleResize(int w, int h) {
+	width = w;
+	height = h;
 	glViewport(0, 0, w, h);
 }
 
@@ -184,6 +187,10 @@ void render() {
     glUseProgram(shaderProgram);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+	glUniform2f(glGetUniformLocation(shaderProgram, "resolution"), width, height);
+	glUniform1f(glGetUniformLocation(shaderProgram, "time"), glfwGetTime());
+
     glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(posAttrib);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -194,8 +201,6 @@ void render() {
 
 void renderingThread(const string& fragShaderPath) {
     GLFWwindow* window;
-    int width = 800;
-    int height = 600;
 
     if(!glfwInit())
         handleError("GLFW init failed", -1);
@@ -244,7 +249,6 @@ int main(int argc, char **argv) {
     if(argc < 2) {
         handleError("Provide fragment shader argument", -1);
     }
-
     string fragShaderPath = string(argv[1]);
 
     father = getpid();
