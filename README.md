@@ -10,6 +10,7 @@ cloning with submodules:
 
 ```bash
 git clone --recursive git@github.com:karimnaaji/fragtool.git
+git submodule foreach git pull
 ```
 
 ```bash
