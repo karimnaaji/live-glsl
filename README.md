@@ -6,6 +6,12 @@ fragtool
 build and run
 -------------
 
+cloning with submodules:
+
+```bash
+git clone --recursive git@github.com:karimnaaji/fragtool.git
+```
+
 ```bash
 mkdir build && cd build
 cmake ..
