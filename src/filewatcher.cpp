@@ -6,6 +6,7 @@ FileWatcher::FileWatcher(const string& absolutePath, void (*cb)(void))
 }
 
 FileWatcher::~FileWatcher() {
+    delete[] ctxDesc->paths;
     delete ctxDesc;
 }
 

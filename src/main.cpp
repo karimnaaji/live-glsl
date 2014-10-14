@@ -27,6 +27,7 @@ GLuint fragmentId;
 GLuint vertexId;
 pid_t pid;
 pid_t father;
+FileWatcher* watcher;
 
 int width = 800;
 int height = 600;
@@ -35,7 +36,7 @@ bool fragHasChanged = false;
 
 void handleError(const string& message, int exitStatus) {
     cerr << "ABORT: "<< message << endl;
-	kill(pid, SIGKILL);
+	kill(pid, SIGALRM);
     exit(exitStatus);
 }
 
@@ -148,10 +149,17 @@ void fileHasChanged(int sig) {
     }
 }
 
+void cleanWatcher(int sig) {
+	if(sig == SIGALRM) {
+		delete watcher;
+		exit(0);
+	}
+}
+
 void handleKeypress(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	switch (key) {
 		case 256:
-			kill(pid, SIGKILL);
+			kill(pid, SIGALRM);
 			clean();
 			exit(0);
 	}
@@ -181,9 +189,9 @@ void watchingThread(const char* argv) {
     char* s = new char[1024];
     realpath(argv, s);
     string absolutePath(s);
-    FileWatcher watcher(absolutePath, &callback);
+    watcher = new FileWatcher(absolutePath, &callback);
     cout << pid << " start watching " << absolutePath << endl;
-    watcher.startWatching();
+    watcher->startWatching();
 }
 
 void render() {
@@ -257,19 +265,20 @@ int main(int argc, char **argv) {
 
     father = getpid();
     pid = fork();
-    redefineSignal(SIGALRM, fileHasChanged);
 
     if(pid < 0)
         handleError("Fork failure", -1);
 
     switch(pid) {
         case 0: { // child
+			redefineSignal(SIGALRM, cleanWatcher);
             watchingThread(argv[1]);
         }
         break;
         default: {
+			redefineSignal(SIGALRM, fileHasChanged);
             renderingThread(fragShaderPath);
-            kill(pid, SIGKILL);
+            kill(pid, SIGALRM);
             clean();
         }
     }
