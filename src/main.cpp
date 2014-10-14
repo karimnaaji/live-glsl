@@ -39,8 +39,12 @@ void handleError(const string& message, int exitStatus) {
     exit(exitStatus);
 }
 
-void printShaderInfoLog(GLuint shader)
-{
+void clean() {
+	glDeleteBuffers(1, &vbo);
+	glDeleteProgram(shaderProgram);
+}
+
+void printShaderInfoLog(GLuint shader) {
     GLint length = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
     if(length > 1) {
@@ -51,8 +55,7 @@ void printShaderInfoLog(GLuint shader)
     }
 }
 
-GLuint compileShader(const GLchar* src, GLenum type)
-{
+GLuint compileShader(const GLchar* src, GLenum type) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &src, NULL);
     glCompileShader(shader);
@@ -145,14 +148,16 @@ void fileHasChanged(int sig) {
     }
 }
 
-void handleKeypress(unsigned char key, int x, int y) {
+void handleKeypress(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	switch (key) {
-		case 27: //Escape key
+		case 256:
+			kill(pid, SIGKILL);
+			clean();
 			exit(0);
 	}
 }
 
-void handleResize(int w, int h) {
+void handleResize(GLFWwindow* window, int w, int h) {
 	width = w;
 	height = h;
 	glViewport(0, 0, w, h);
@@ -222,6 +227,9 @@ void renderingThread(const string& fragShaderPath) {
         handleError("GlEW init failed", -1);
     }
 
+	glfwSetWindowSizeCallback(window, handleResize);
+	glfwSetKeyCallback(window, handleKeypress);
+
     initShader(fragShaderPath);
 
     while(!glfwWindowShouldClose(window)) {
@@ -239,11 +247,6 @@ void renderingThread(const string& fragShaderPath) {
     }
 
     glfwTerminate();
-}
-
-void clean() {
-    glDeleteBuffers(1, &vbo);
-    glDeleteProgram(shaderProgram);
 }
 
 int main(int argc, char **argv) {
