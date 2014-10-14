@@ -35,6 +35,7 @@ bool fragHasChanged = false;
 
 void handleError(const string& message, int exitStatus) {
     cerr << "ABORT: "<< message << endl;
+	kill(pid, SIGKILL);
     exit(exitStatus);
 }
 
@@ -66,15 +67,14 @@ GLuint compileShader(const GLchar* src, GLenum type)
     return shader;
 }
 
-void loadShaderSource(const string& path, string* into) {
+bool loadShaderSource(const string& path, string* into) {
     ifstream file;
     string buffer;
 
     file.open(path.c_str());
 
     if(!file.is_open()) {
-		// TODO : fix this
-        //handleError("Opening file failure" + path, -1);
+		return false;
     }
 
     while(!file.eof()) {
@@ -83,9 +83,10 @@ void loadShaderSource(const string& path, string* into) {
     }
 
     file.close();
+	return true;
 }
 
-unsigned int linkShaderToProgram(GLuint program, const GLchar* source, GLenum type) {
+bool linkShaderToProgram(GLuint program, const GLchar* source, GLenum type) {
     switch(type) {
         case GL_VERTEX_SHADER: {
             vertexId = compileShader(source, GL_VERTEX_SHADER);
@@ -95,7 +96,7 @@ unsigned int linkShaderToProgram(GLuint program, const GLchar* source, GLenum ty
         case GL_FRAGMENT_SHADER: {
             fragmentId = compileShader(source, GL_FRAGMENT_SHADER);
             if(fragmentId == -1) {
-                return -1;
+                return false;
             }
             glAttachShader(program, fragmentId);
         }
@@ -110,10 +111,10 @@ unsigned int linkShaderToProgram(GLuint program, const GLchar* source, GLenum ty
     if(!linkStatus) {
         printShaderInfoLog(program);
         glDeleteProgram(program);
-        handleError("Linking failed", -1);
+		return false;
     }
 
-    return 0;
+    return true;
 }
 
 void initShader(const string& fragShaderPath) {
@@ -135,7 +136,6 @@ void initShader(const string& fragShaderPath) {
 }
 
 void callback() {
-    cout << "file has changed" << endl;
     kill(father, SIGALRM);
 }
 
@@ -168,7 +168,7 @@ void redefineSignal(int sig, void (*handler)(int)) {
     action.sa_mask = set;
 
     if (sigaction(sig, &action, NULL) != 0) {
-        cerr << "not able to redefine signal number" << sig << endl;
+		handleError("Not able to redefine signal", -1);
     }
 }
 
@@ -227,11 +227,12 @@ void renderingThread(const string& fragShaderPath) {
     while(!glfwWindowShouldClose(window)) {
         glfwSwapBuffers(window);
         if(fragHasChanged) {
-            glDetachShader(shaderProgram, fragmentId);
             string fragSource;
-            loadShaderSource(fragShaderPath, &fragSource);
-            linkShaderToProgram(shaderProgram, fragSource.c_str(), GL_FRAGMENT_SHADER);
-            fragHasChanged = false;
+            if(loadShaderSource(fragShaderPath, &fragSource)) {
+				glDetachShader(shaderProgram, fragmentId);
+				linkShaderToProgram(shaderProgram, fragSource.c_str(), GL_FRAGMENT_SHADER);
+				fragHasChanged = false;
+			}
         }
         render();
         glfwPollEvents();

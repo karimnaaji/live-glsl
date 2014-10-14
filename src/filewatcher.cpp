@@ -48,11 +48,6 @@ void eventCallback(ConstFSEventStreamRef streamRef,
     void *paths,
     const FSEventStreamEventFlags flags[],
     const FSEventStreamEventId ids[]) {
-
-    for (size_t i = 0; i < count; i++) {
-        printf("%llu \n", ids[i]);
-    }
-
     ctx_desc *ctxDesc = (ctx_desc *)ctx;
     ctxDesc->watcher->processEvent();
 }
