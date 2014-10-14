@@ -22,3 +22,10 @@ make
 ```bash
 ./fragtool.out fragment_shader_to_watch
 ```
+
+fragment shader inputs
+----------------------
+
+Possible use of these uniforms : 
+ + time : float
+ + resolution : vec2
