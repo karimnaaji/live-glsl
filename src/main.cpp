@@ -218,7 +218,7 @@ void renderingThread(const string& fragShaderPath) {
     if(!glfwInit())
         handleError("GLFW init failed", -1);
 
-    window = glfwCreateWindow(width, height, "GLFW Window", NULL, NULL);
+    window = glfwCreateWindow(width, height, "fragtool", NULL, NULL);
 
     if(!window) {
         glfwTerminate();
