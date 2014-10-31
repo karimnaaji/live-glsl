@@ -10,6 +10,7 @@ set(CXX_FLAGS_DEBUG "${CXX_FLAGS_DEBUG} -g -O0")
 set(SOURCES
     src/main.cpp
     src/filewatcher.cpp
+    src/fragtool.cpp
     )
 
 find_package(GLEW REQUIRED)

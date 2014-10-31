@@ -1,9 +1,7 @@
 #include "filewatcher.h"
 
 FileWatcher::FileWatcher(const string& absolutePath, void (*cb)(void))
-: file(absolutePath), callback(cb) {
-
-}
+: file(absolutePath), callback(cb) {}
 
 FileWatcher::~FileWatcher() {
     delete[] ctxDesc->paths;
@@ -48,7 +46,8 @@ void eventCallback(ConstFSEventStreamRef streamRef,
     size_t count,
     void *paths,
     const FSEventStreamEventFlags flags[],
-    const FSEventStreamEventId ids[]) {
+    const FSEventStreamEventId ids[]) 
+{
     ctx_desc *ctxDesc = (ctx_desc *)ctx;
     ctxDesc->watcher->processEvent();
 }
