@@ -43,7 +43,7 @@ bool FragTool::linkShaderToProgram(GLuint program, const GLchar* source, GLenum 
 void FragTool::printShaderInfoLog(GLuint shader) {
     GLint length = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-    
+
     if(length > 1) {
         char* log = new char[length];
         glGetShaderInfoLog(shader, length, NULL, log);
@@ -88,6 +88,10 @@ bool FragTool::loadShaderSource(const string& path, string* into) {
 }
 
 void FragTool::initShader() {
+    float vertices[12];
+    
+    quad(vertices);
+
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);

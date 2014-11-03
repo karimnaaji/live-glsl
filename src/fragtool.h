@@ -9,6 +9,7 @@
 #include "GLFW/glfw3.h"
 #include "filewatcher.h"
 #include "default_vert.h"
+#include "quad.h"
 
 using namespace std;
 
@@ -64,14 +65,5 @@ private:
 extern void handleResize(GLFWwindow* window, int w, int h);
 extern void handleKeypress(GLFWwindow* window, int key, int scancode, int action, int mods);
 extern void watcherCallback();
-
-static const GLfloat vertices[] = {
-    -1.0f,  1.0f,
-    -1.0f, -1.0f,
-     1.0f, -1.0f,
-    -1.0f,  1.0f,
-     1.0f, -1.0f,
-     1.0f,  1.0f
-};
 
 #endif
