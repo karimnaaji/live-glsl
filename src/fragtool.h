@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <GL/glew.h>
+#include <memory>
 
 #include "GLFW/glfw3.h"
 #include "filewatcher.h"
@@ -54,7 +55,7 @@ private:
     pid_t childProcess;
     pid_t parentProcess;
 
-    FileWatcher* watcher;
+    std::unique_ptr<FileWatcher> watcher;
 
     int width;
     int height;

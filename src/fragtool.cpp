@@ -5,8 +5,6 @@ FragTool::FragTool() {
 }
 
 FragTool::~FragTool() {
-    delete watcher;
-
     glDeleteBuffers(1, &vbo);
     glDeleteProgram(shaderProgram);
 }
@@ -45,11 +43,12 @@ bool FragTool::linkShaderToProgram(GLuint program, const GLchar* source, GLenum 
 void FragTool::printShaderInfoLog(GLuint shader) {
     GLint length = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+    
     if(length > 1) {
-        char* log = (char*)malloc(sizeof(char) * length);
+        char* log = new char[length];
         glGetShaderInfoLog(shader, length, NULL, log);
         cerr << "Log: " << log << endl;
-        free(log);
+        delete[] log;
     }
 }
 
@@ -199,6 +198,6 @@ void FragTool::watchingThread() {
 
     string absolutePath(s);
 
-    watcher = new FileWatcher(absolutePath, &watcherCallback);
+    watcher = std::unique_ptr<FileWatcher>(new FileWatcher(absolutePath, &watcherCallback));
     watcher->startWatching();
 }
