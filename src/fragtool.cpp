@@ -1,10 +1,5 @@
 #include "fragtool.h"
 
-unique_ptr<FragTool> FragTool::GetInstance() {
-    static unique_ptr<FragTool> instance(new FragTool());
-    return move(instance);
-}
-
 FragTool::FragTool() {
     fragHasChanged = false;
 }
@@ -66,6 +61,7 @@ GLuint FragTool::compileShader(const GLchar* src, GLenum type) {
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 
     if(!status) {
+        cout << src << endl;
         printShaderInfoLog(shader);
         glDeleteShader(shader);
         return -1;
@@ -110,30 +106,6 @@ void FragTool::initShader() {
     glEnableVertexAttribArray(posAttrib);
 }
 
-void FragTool::fragmentHasChanged() {
-    fragHasChanged = true;
-}
-
-void FragTool::watcherCallback() {
-    kill(parentProcess, SIGALRM);
-}
-
-void FragTool::handleKeypress(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    unique_ptr<FragTool> instance = FragTool::GetInstance();
-    switch (key) {
-        case 256:
-            kill(instance->childProcess, SIGALRM);
-            exit(0);
-    }
-}
-
-void FragTool::handleResize(GLFWwindow* window, int w, int h) {
-    unique_ptr<FragTool> instance = FragTool::GetInstance();
-    instance->width = w;
-    instance->height = h;
-    glViewport(0, 0, w, h);
-}
-
 void FragTool::setChildProcess(pid_t pid) {
     childProcess = pid;
 }
@@ -164,9 +136,13 @@ void FragTool::render() {
     glEnableVertexAttribArray(0);
 }
 
+void FragTool::fragmentHasChanged() {
+    fragHasChanged = true;
+}
+
 void FragTool::renderingThread() {
-    int width = 800;
-    int height = 600;
+    width = 800;
+    height = 600;
     GLFWwindow* window;
 
     if(!glfwInit())
@@ -196,6 +172,7 @@ void FragTool::renderingThread() {
 
     while(!glfwWindowShouldClose(window)) {
         glfwSwapBuffers(window);
+        
         if(fragHasChanged) {
             string fragSource;
             if(loadShaderSource(fragShaderPath, &fragSource)) {
@@ -213,18 +190,15 @@ void FragTool::renderingThread() {
 
 void FragTool::handleError(const string& message, int exitStatus) {
     cerr << "ABORT: "<< message << endl;
-    kill(childProcess, SIGKILL);
     exit(exitStatus);
 }
 
 void FragTool::watchingThread() {
-    char* s = new char[1024];
+    char s[1024];
     realpath(fragShaderPath.c_str(), s);
-    string absolutePath(s);
-    watcher = new FileWatcher(absolutePath, &watcherCallbackWrapper);
-    watcher->startWatching();
-}
 
-void watcherCallbackWrapper() {
-    FragTool::GetInstance()->watcherCallback();
+    string absolutePath(s);
+
+    watcher = new FileWatcher(absolutePath, &watcherCallback);
+    watcher->startWatching();
 }

@@ -2,6 +2,8 @@
 #define UTILS_H
 
 #include <iostream>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 void redefineSignal(int sig, void (*handler)(int)) {
     struct sigaction action;
@@ -16,5 +18,14 @@ void redefineSignal(int sig, void (*handler)(int)) {
         std::cerr << "Not able to redefine signal" << std::endl;
     }
 }
+
+key_t createKey(const char* name) {
+    key_t key = ftok(name, 0);
+    if(key == -1) {
+    	std::cerr << "Not able to create key" << std::endl;
+    }
+    return key;
+}
+
 
 #endif
