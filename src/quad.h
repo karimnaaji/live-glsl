@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 static void quad(float* v) {
 	short field = 0x0D92; // encode sign
 	for(int i = 0; i < 12; ++i) {
