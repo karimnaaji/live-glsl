@@ -1,5 +1,4 @@
-#ifndef FRAGTOOL_H
-#define FRAGTOOL_H
+#pragma once
 
 #include <iostream>
 #include <fstream>
@@ -65,5 +64,3 @@ private:
 extern void handleResize(GLFWwindow* window, int w, int h);
 extern void handleKeypress(GLFWwindow* window, int key, int scancode, int action, int mods);
 extern void watcherCallback();
-
-#endif

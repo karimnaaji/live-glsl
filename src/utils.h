@@ -1,5 +1,4 @@
-#ifndef UTILS_H
-#define UTILS_H
+#pragma once
 
 #include <iostream>
 #include <sys/ipc.h>
@@ -26,6 +25,3 @@ key_t createKey(const char* name) {
     }
     return key;
 }
-
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef FILE_WATCHER_H
-#define FILE_WATCHER_H
+#pragma once
 
 #include <string>
 #include <CoreServices/CoreServices.h>
@@ -36,5 +35,3 @@ void eventCallback(ConstFSEventStreamRef streamRef,
       void *paths,
       const FSEventStreamEventFlags flags[],
       const FSEventStreamEventId ids[]);
-
-#endif

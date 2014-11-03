@@ -1,5 +1,4 @@
-#ifndef QUAD_H
-#define QUAD_H
+#pragma once
 
 #include <memory>
 
@@ -10,5 +9,3 @@ static void quad(float* v) {
 	    field >>= 1;
 	}
 }
-
-#endif
