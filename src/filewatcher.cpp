@@ -3,11 +3,6 @@
 FileWatcher::FileWatcher(const string& absolutePath, void (*cb)(void))
 : file(absolutePath), callback(cb) {}
 
-FileWatcher::~FileWatcher() {
-    delete[] ctxDesc->paths;
-    delete ctxDesc;
-}
-
 void FileWatcher::startWatching() {
     ctxDesc = new ctx_desc;
     ctxDesc->len = 0;

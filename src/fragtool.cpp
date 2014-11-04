@@ -4,7 +4,9 @@ FragTool::FragTool() {
     fragHasChanged = false;
 }
 
-FragTool::~FragTool() {
+void FragTool::destroy() {
+    delete watcher;
+    
     glDeleteBuffers(1, &vbo);
     glDeleteProgram(shaderProgram);
 }
@@ -146,7 +148,6 @@ void FragTool::fragmentHasChanged() {
 void FragTool::renderingThread() {
     width = 800;
     height = 600;
-    GLFWwindow* window;
 
     if(!glfwInit())
         handleError("GLFW init failed", -1);
@@ -184,6 +185,7 @@ void FragTool::renderingThread() {
                 fragHasChanged = false;
             }
         }
+
         render();
         glfwPollEvents();
     }
@@ -202,6 +204,6 @@ void FragTool::watchingThread() {
 
     string absolutePath(s);
 
-    watcher = std::unique_ptr<FileWatcher>(new FileWatcher(absolutePath, &watcherCallback));
+    watcher = new FileWatcher(absolutePath, &watcherCallback);
     watcher->startWatching();
 }

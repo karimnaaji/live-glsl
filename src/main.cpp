@@ -11,7 +11,6 @@ static FragTool* fragtool;
  * Parent event signal handling
  */
 void fileHasChanged(int sig) {
-    cout << "main fileHasChanged" << sig << " sigalrm " << SIGALRM << endl;
     if(sig == SIGALRM) {
 		fragtool->fragmentHasChanged();
     }
@@ -27,7 +26,7 @@ void watcherCallback() {
 void handleKeypress(GLFWwindow* window, int key, int scancode, int action, int mods) {
     switch (key) {
         case 256: // ESC
-            exit(0);
+            glfwSetWindowShouldClose(fragtool->window, GL_TRUE);
     }
 }
 
@@ -41,7 +40,7 @@ void handleResize(GLFWwindow* window, int w, int h) {
 int main(int argc, char **argv) {
     if(argc < 2) {
         std::cerr << "Provide fragment shader argument" << std::endl;
-		exit(-1);
+        exit(-1);
     }
 
     int shmId = shmget(IPC_PRIVATE, sizeof(FragTool), 0666);
@@ -51,16 +50,19 @@ int main(int argc, char **argv) {
     pid_t parent = getpid();
     pid_t child = fork();
 
+    // shared memory block
     fragtool = (FragTool *) shmat(shmId, NULL, 0);
 
     switch(child) {
-        case -1: 
+        case -1: {
+            shmctl(shmId, IPC_RMID, NULL);
             exit(-1);
-
+        }
+            
         case 0: {
             fragtool->watchingThread();
+            break;
         }
-        break;
 
         default: {
             fragtool->setFragShaderPath(fragShaderPath);
@@ -75,7 +77,10 @@ int main(int argc, char **argv) {
             kill(child, SIGKILL);
         }
     }
+    
+    fragtool->destroy();
 
+    // remove shared memory
     shmctl(shmId, IPC_RMID, NULL);
 
     return 0;

@@ -19,10 +19,10 @@ typedef struct {
 class FileWatcher {
 public:
     FileWatcher(const string& absolutePath, void (*cb)(void));
-    ~FileWatcher();
     void startWatching();
     string watchedFile() const;
     void processEvent() const;
+    
 private:
     ctx_desc* ctxDesc;
     string file;

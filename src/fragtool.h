@@ -3,7 +3,6 @@
 #include <iostream>
 #include <fstream>
 #include <GL/glew.h>
-#include <memory>
 
 #include "GLFW/glfw3.h"
 #include "filewatcher.h"
@@ -15,7 +14,6 @@ using namespace std;
 class FragTool {
 public:
     FragTool();
-    ~FragTool();
 
     void watchingThread();
     void renderingThread();
@@ -37,7 +35,10 @@ public:
 
     void fragmentHasChanged();
     
+    void destroy();
 private:
+    GLFWwindow* window;
+    
     bool fragHasChanged;
     void handleError(const string& message, int exitStatus);
     void render();
@@ -55,7 +56,7 @@ private:
     pid_t childProcess;
     pid_t parentProcess;
 
-    std::unique_ptr<FileWatcher> watcher;
+    FileWatcher* watcher;
 
     int width;
     int height;
