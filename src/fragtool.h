@@ -53,7 +53,7 @@ private:
     pid_t childProcess;
     pid_t parentProcess;
 
-    FileWatcher* watcher;
+    FileWatcher watcher;
 
     int width;
     int height;

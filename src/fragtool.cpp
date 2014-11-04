@@ -5,8 +5,6 @@ FragTool::FragTool() {
 }
 
 void FragTool::destroy() {
-    delete watcher;
-    
     glDeleteBuffers(1, &vbo);
     glDeleteProgram(shaderProgram);
 }
@@ -204,6 +202,6 @@ void FragTool::watchingThread() {
 
     string absolutePath(s);
 
-    watcher = new FileWatcher(absolutePath, &watcherCallback);
-    watcher->startWatching();
+    watcher = FileWatcher(absolutePath, &watcherCallback);
+    watcher.startWatching();
 }

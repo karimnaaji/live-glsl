@@ -12,7 +12,7 @@ static FragTool* fragtool;
  */
 void fileHasChanged(int sig) {
     if(sig == SIGALRM) {
-		fragtool->fragmentHasChanged();
+        fragtool->fragmentHasChanged();
     }
 }
 
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
     // shared memory block
     fragtool = (FragTool *) shmat(shmId, NULL, 0);
-
+    
     switch(child) {
         case -1: {
             shmctl(shmId, IPC_RMID, NULL);

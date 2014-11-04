@@ -18,6 +18,7 @@ typedef struct {
 
 class FileWatcher {
 public:
+    FileWatcher() {};
     FileWatcher(const string& absolutePath, void (*cb)(void));
     void startWatching();
     string watchedFile() const;
