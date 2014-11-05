@@ -8,6 +8,7 @@ FragTool::FragTool() {
 }
 
 void FragTool::destroy() {
+    glfonsDelete(fs);
     glDeleteBuffers(1, &vbo);
     glDeleteProgram(shaderProgram);
 }
@@ -51,6 +52,8 @@ void FragTool::printShaderInfoLog(GLuint shader) {
         char* log = new char[length];
         glGetShaderInfoLog(shader, length, NULL, log);
         cerr << "Log: " << log << endl;
+        shaderLog = string(log);
+        shaderLog[shaderLog.size()-1] = '.';
         delete[] log;
     }
 }
@@ -67,6 +70,8 @@ GLuint FragTool::compileShader(const GLchar* src, GLenum type) {
         printShaderInfoLog(shader);
         glDeleteShader(shader);
         return -1;
+    } else {
+        shaderLog = "";
     }
     return shader;
 }
@@ -146,6 +151,44 @@ void FragTool::fragmentHasChanged() {
     fragHasChanged = true;
 }
 
+void FragTool::initFont() {
+    fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
+    font = fonsAddFont(fs, "sans", "/Library/Fonts/Arial.ttf");
+
+    if(font == FONS_INVALID) {
+        std::cerr << "Could not add font normal" << std::endl;
+        glfonsDelete(fs);
+        fs = NULL;
+    } else {
+        effect = FONS_EFFECT_NONE;
+        
+        fonsSetSize(fs, 25);
+        fonsSetFont(fs, font);
+    }
+}
+
+void FragTool::renderLog() {
+    if(shaderLog.compare("") == 0) {
+        if(bufferedLog) {
+            glfonsUnbufferText(fs, textDisplay);
+            bufferedLog = false;
+        }
+    } else {
+        if(!bufferedLog) {
+            glfonsBufferText(fs, shaderLog.c_str(), &textDisplay, effect);        
+            bufferedLog = true;
+        }
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_TEXTURE_2D);
+        glDisable(GL_DEPTH_TEST);
+        glfonsPushMatrix(fs);
+        glfonsTranslate(fs, 10.0, 25.0);
+        glfonsDrawText(fs, textDisplay);  
+        glfonsPopMatrix(fs);
+    }
+}
+
 void FragTool::renderingThread() {
     width = 800;
     height = 600;
@@ -174,6 +217,9 @@ void FragTool::renderingThread() {
     glfwSetKeyCallback(window, handleKeypress);
 
     initShader();
+    initFont();
+
+    glfonsUpdateViewport(fs);
 
     while(!glfwWindowShouldClose(window)) {
         glfwSwapBuffers(window);
@@ -187,7 +233,9 @@ void FragTool::renderingThread() {
             }
         }
 
-        render();
+        render(); 
+        renderLog(); 
+
         glfwPollEvents();
     }
 

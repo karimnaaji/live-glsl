@@ -16,6 +16,7 @@ Thumbs.db
 *.a
 
 build/
+!build/data/*
 
 #cmake
 CMakeCache.txt

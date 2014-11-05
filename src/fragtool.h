@@ -32,7 +32,9 @@ public:
 
 private:
     void render();
+    void renderLog();
     void initShader();
+    void initFont();
     void handleError(const string& message, int exitStatus);
     bool linkShaderToProgram(GLuint program, const GLchar* source, GLenum type);
     bool loadShaderSource(const string& path, string* into);
@@ -59,6 +61,13 @@ private:
 
     int width;
     int height;
+
+    FONScontext* fs;
+    FONSeffectType effect;
+    int font;
+    fsuint textDisplay;
+    string shaderLog;
+    bool bufferedLog;
 };
 
 extern void handleResize(GLFWwindow* window, int w, int h);
