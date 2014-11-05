@@ -66,7 +66,6 @@ GLuint FragTool::compileShader(const GLchar* src, GLenum type) {
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 
     if(!status) {
-        cout << src << endl;
         printShaderInfoLog(shader);
         glDeleteShader(shader);
         return -1;
