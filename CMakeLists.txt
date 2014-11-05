@@ -11,7 +11,13 @@ set(SOURCES
     src/main.cpp
     src/filewatcher.cpp
     src/fragtool.cpp
-    )
+)
+
+include_directories(${CMAKE_SOURCE_DIR}/lib/fontstash)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/lib/glm)
+include_directories(${CMAKE_SOURCE_DIR}/lib/glm)
+include_directories(${CMAKE_SOURCE_DIR}/lib/glm/gtc)
 
 find_package(GLEW REQUIRED)
 

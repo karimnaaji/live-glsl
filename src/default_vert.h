@@ -1,6 +1,6 @@
 #pragma once
 
-static const GLchar* vertexShaderSrc = R"END( 
+static const GLchar* vertexShader = R"END( 
 attribute vec4 position;
 
 void main() {

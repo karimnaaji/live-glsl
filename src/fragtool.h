@@ -9,6 +9,8 @@
 #include "default_vert.h"
 #include "quad.h"
 
+#include "glfontstash.h"
+
 using namespace std;
 
 class FragTool {

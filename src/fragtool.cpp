@@ -1,5 +1,8 @@
 #include "fragtool.h"
 
+#define GLFONTSTASH_IMPLEMENTATION
+#include "glfontstash.h"
+
 FragTool::FragTool() {
     fragHasChanged = false;
 }
@@ -101,7 +104,7 @@ void FragTool::initShader() {
     string fragSource;
     loadShaderSource(fragShaderPath, &fragSource);
 
-    linkShaderToProgram(shaderProgram, vertexShaderSrc, GL_VERTEX_SHADER);
+    linkShaderToProgram(shaderProgram, vertexShader, GL_VERTEX_SHADER);
     linkShaderToProgram(shaderProgram, fragSource.c_str(), GL_FRAGMENT_SHADER);
 
     posAttrib = glGetAttribLocation(shaderProgram, "position");
