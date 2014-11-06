@@ -5,6 +5,7 @@
 #include <sys/shm.h>
 #include <string.h>
 #include <stdio.h>
+#include <vector>
 
 static void redefineSignal(int sig, void (*handler)(int)) {
     struct sigaction action;
@@ -65,4 +66,25 @@ static char** strSplit(char* str, const char delimiter) {
     }
 
     return result;
+}
+
+static vector<string> strSplit(string str, char delimiter) {
+    vector<string> split;
+    char* cstr = (char*) malloc(str.size() - 1);
+    strcpy(cstr, str.c_str());
+    char** csplit = strSplit(cstr, delimiter);
+    
+    if(csplit) {
+        int i;
+        for(i = 0; *(csplit + i); i++) {
+            char* next = *(csplit + i);
+            split.push_back(string(next));
+
+            free(next);
+        }
+        free(csplit);
+    }
+
+    delete[] cstr;
+    return split;
 }

@@ -181,24 +181,11 @@ void FragTool::renderLog() {
         }
     } else {
         if(!bufferedLog) {
-            char* log = new char[shaderLog.size() - 1];
-            strcpy(log, shaderLog.c_str());
-            char** split = strSplit(log, '\n');
-            
-            if(split) {
-                int i;
-                for(i = 0; *(split + i); i++) {
-                    fsuint id;
-                    
-                    glfonsBufferText(fs, *(split + i), &id, effect);
-                    textDisplay.push_back(id);   
-
-                    free(*(split + i));
-                }
-                free(split);
+            for(auto str : strSplit(shaderLog, '\n')) {
+                fsuint id;
+                glfonsBufferText(fs, str.c_str(), &id, effect);
+                textDisplay.push_back(id);   
             }
-
-            delete[] log;
             bufferedLog = true;
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
