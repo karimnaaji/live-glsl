@@ -8,6 +8,11 @@ FragTool::FragTool() {
 }
 
 void FragTool::destroy() {
+    if(bufferedLog) {
+        for(auto id : textDisplay) {
+            glfonsUnbufferText(fs, id);
+        }
+    }
     glfonsDelete(fs);
     glDeleteBuffers(1, &vbo);
     glDeleteProgram(shaderProgram);
@@ -53,7 +58,6 @@ void FragTool::printShaderInfoLog(GLuint shader) {
         glGetShaderInfoLog(shader, length, NULL, log);
         cerr << "Log: " << log << endl;
         shaderLog = string(log);
-        shaderLog[shaderLog.size()-1] = '.';
         delete[] log;
     }
 }
@@ -169,21 +173,50 @@ void FragTool::initFont() {
 void FragTool::renderLog() {
     if(shaderLog.compare("") == 0) {
         if(bufferedLog) {
-            glfonsUnbufferText(fs, textDisplay);
+            for(auto id : textDisplay) {
+                glfonsUnbufferText(fs, id);
+            }
+            textDisplay.clear();
             bufferedLog = false;
         }
     } else {
         if(!bufferedLog) {
-            glfonsBufferText(fs, shaderLog.c_str(), &textDisplay, effect);        
+            char* log = new char[shaderLog.size() - 1];
+            strcpy(log, shaderLog.c_str());
+            char** split = strSplit(log, '\n');
+            
+            if(split) {
+                int i;
+                for(i = 0; *(split + i); i++) {
+                    fsuint id;
+                    
+                    glfonsBufferText(fs, *(split + i), &id, effect);
+                    textDisplay.push_back(id);   
+
+                    free(*(split + i));
+                }
+                free(split);
+            }
+
+            delete[] log;
             bufferedLog = true;
         }
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDisable(GL_TEXTURE_2D);
         glDisable(GL_DEPTH_TEST);
+
+        float yOffset = 25.0;
+        float yPad = yOffset;
+
         glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 10.0, 25.0);
-        glfonsDrawText(fs, textDisplay);  
+        glfonsTranslate(fs, 10.0, 0.0);
+        for(auto id : textDisplay) {
+            glfonsTranslate(fs, 0.0, yPad);
+            glfonsDrawText(fs, id); 
+        } 
         glfonsPopMatrix(fs);
     }
 }
@@ -219,9 +252,11 @@ void FragTool::renderingThread() {
     initFont();
 
     glfonsUpdateViewport(fs);
+    glClearColor(56.0/255, 101.0/255, 190.0/255, 1);
 
     while(!glfwWindowShouldClose(window)) {
         glfwSwapBuffers(window);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         if(fragHasChanged) {
             string fragSource;

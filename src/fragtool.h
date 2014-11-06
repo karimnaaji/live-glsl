@@ -3,11 +3,13 @@
 #include <iostream>
 #include <fstream>
 #include <GL/glew.h>
+#include <vector>
 
 #include "GLFW/glfw3.h"
 #include "filewatcher.h"
 #include "default_vert.h"
 #include "quad.h"
+#include "utils.h"
 
 #include "glfontstash.h"
 
@@ -65,7 +67,7 @@ private:
     FONScontext* fs;
     FONSeffectType effect;
     int font;
-    fsuint textDisplay;
+    vector<fsuint> textDisplay;
     string shaderLog;
     bool bufferedLog;
 };

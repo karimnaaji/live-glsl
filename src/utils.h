@@ -3,8 +3,10 @@
 #include <iostream>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <string.h>
+#include <stdio.h>
 
-void redefineSignal(int sig, void (*handler)(int)) {
+static void redefineSignal(int sig, void (*handler)(int)) {
     struct sigaction action;
     sigset_t set;
 
@@ -18,10 +20,49 @@ void redefineSignal(int sig, void (*handler)(int)) {
     }
 }
 
-key_t createKey(const char* name) {
+static key_t createKey(const char* name) {
     key_t key = ftok(name, 0);
     if(key == -1) {
     	std::cerr << "Not able to create key" << std::endl;
     }
     return key;
+}
+
+static char** strSplit(char* str, const char delimiter) {
+    char** result = 0;
+    size_t count = 0;
+    char* tmp = str;
+    char* last = 0;
+    char delim[2];
+    delim[0] = delimiter;
+    delim[1] = 0;
+
+    while(*tmp) {
+        if (delimiter == *tmp) {
+            count++;
+            last = tmp;
+        }
+        tmp++;
+    }
+
+    count += last < (str + strlen(str) - 1);
+
+    count++;
+    result = (char**) malloc(sizeof(char*) * count);
+    cout << str << endl;
+    
+    if(result) {
+        size_t idx  = 0;
+        char* token = strtok(str, delim);
+
+        while(token) {
+            assert(idx < count);
+            *(result + idx++) = strdup(token);
+            token = strtok(NULL, delim);
+        }
+        assert(idx == count - 1);
+        *(result + idx) = 0;
+    }
+
+    return result;
 }
