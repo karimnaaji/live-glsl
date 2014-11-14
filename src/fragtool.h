@@ -2,16 +2,12 @@
 
 #include <iostream>
 #include <fstream>
-#include <GL/glew.h>
 #include <vector>
 
-#include "GLFW/glfw3.h"
+#include "graphics.h"
 #include "filewatcher.h"
 #include "default_vert.h"
-#include "quad.h"
 #include "utils.h"
-
-#include "glfontstash.h"
 
 using namespace std;
 

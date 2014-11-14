@@ -11,6 +11,7 @@ set(SOURCES
     src/main.cpp
     src/filewatcher.cpp
     src/fragtool.cpp
+    src/shader.cpp
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/lib/fontstash)

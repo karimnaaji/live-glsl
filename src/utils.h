@@ -3,8 +3,10 @@
 #include <iostream>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#include <string.h>
+#include <signal.h>
+#include <string>
 #include <stdio.h>
+#include <fstream>
 #include <vector>
 
 static void redefineSignal(int sig, void (*handler)(int)) {
@@ -50,7 +52,6 @@ static char** strSplit(char* str, const char delimiter) {
 
     count++;
     result = (char**) malloc(sizeof(char*) * count);
-    cout << str << endl;
     
     if(result) {
         size_t idx  = 0;
@@ -68,8 +69,8 @@ static char** strSplit(char* str, const char delimiter) {
     return result;
 }
 
-static vector<string> strSplit(string str, char delimiter) {
-    vector<string> split;
+static std::vector<std::string> strSplit(std::string str, char delimiter) {
+    std::vector<std::string> split;
     char* cstr = (char*) malloc(str.size() - 1);
     strcpy(cstr, str.c_str());
     char** csplit = strSplit(cstr, delimiter);
@@ -78,7 +79,7 @@ static vector<string> strSplit(string str, char delimiter) {
         int i;
         for(i = 0; *(csplit + i); i++) {
             char* next = *(csplit + i);
-            split.push_back(string(next));
+            split.push_back(std::string(next));
 
             free(next);
         }
@@ -87,4 +88,19 @@ static vector<string> strSplit(string str, char delimiter) {
 
     delete[] cstr;
     return split;
+}
+
+static bool loadFromPath(const std::string& path, std::string* into) {
+    std::ifstream file;
+    std::string buffer;
+
+    file.open(path.c_str());
+    if(!file.is_open()) return false;
+    while(!file.eof()) {
+        getline(file, buffer);
+        (*into) += buffer + "\n";
+    }
+
+    file.close();
+    return true;
 }

@@ -1,6 +1,4 @@
 #include <iostream>
-#include <fstream>
-#include <thread>
 
 #include "fragtool.h"
 #include "utils.h"
