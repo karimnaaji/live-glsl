@@ -8,6 +8,7 @@
 #include "filewatcher.h"
 #include "default_vert.h"
 #include "utils.h"
+#include "shader.h"
 
 using namespace std;
 
@@ -43,13 +44,7 @@ private:
     bool fragHasChanged;
 
     GLuint vbo;
-    
-    GLint shaderProgram;
     GLint posAttrib;
-
-    GLuint fragmentId;
-    GLuint vertexId;
-
     string fragShaderPath;
 
     pid_t childProcess;
@@ -62,10 +57,12 @@ private:
 
     FONScontext* fs;
     FONSeffectType effect;
+    
     int font;
     vector<fsuint> textDisplay;
     string shaderLog;
     bool bufferedLog;
+    Shader shader;
 };
 
 extern void handleResize(GLFWwindow* window, int w, int h);

@@ -15,87 +15,6 @@ void FragTool::destroy() {
     }
     glfonsDelete(fs);
     glDeleteBuffers(1, &vbo);
-    glDeleteProgram(shaderProgram);
-}
-
-bool FragTool::linkShaderToProgram(GLuint program, const GLchar* source, GLenum type) {
-    switch(type) {
-        case GL_VERTEX_SHADER: {
-            vertexId = compileShader(source, GL_VERTEX_SHADER);
-            glAttachShader(program, vertexId);
-        }
-        break;
-        case GL_FRAGMENT_SHADER: {
-            fragmentId = compileShader(source, GL_FRAGMENT_SHADER);
-            if(fragmentId == -1) {
-                return false;
-            }
-            glAttachShader(program, fragmentId);
-        }
-        break;
-    }
-
-    glLinkProgram(program);
-
-    GLint linkStatus;
-    glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
-
-    if(!linkStatus) {
-        printShaderInfoLog(program);
-        glDeleteProgram(program);
-        return false;
-    }
-
-    return true;
-}
-
-void FragTool::printShaderInfoLog(GLuint shader) {
-    GLint length = 0;
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-
-    if(length > 1) {
-        char* log = new char[length];
-        glGetShaderInfoLog(shader, length, NULL, log);
-        cerr << "Log: " << log << endl;
-        shaderLog = string(log);
-        delete[] log;
-    }
-}
-
-GLuint FragTool::compileShader(const GLchar* src, GLenum type) {
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &src, NULL);
-    glCompileShader(shader);
-    GLint status;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-
-    if(!status) {
-        printShaderInfoLog(shader);
-        glDeleteShader(shader);
-        return -1;
-    } else {
-        shaderLog = "";
-    }
-    return shader;
-}
-
-bool FragTool::loadShaderSource(const string& path, string* into) {
-    ifstream file;
-    string buffer;
-
-    file.open(path.c_str());
-
-    if(!file.is_open()) {
-        return false;
-    }
-
-    while(!file.eof()) {
-        getline(file, buffer);
-        (*into) += buffer + "\n";
-    }
-
-    file.close();
-    return true;
 }
 
 void FragTool::initShader() {
@@ -107,15 +26,15 @@ void FragTool::initShader() {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    shaderProgram = glCreateProgram();
-
     string fragSource;
-    loadShaderSource(fragShaderPath, &fragSource);
 
-    linkShaderToProgram(shaderProgram, vertexShader, GL_VERTEX_SHADER);
-    linkShaderToProgram(shaderProgram, fragSource.c_str(), GL_FRAGMENT_SHADER);
+    if(!loadFromPath(fragShaderPath, &fragSource)) {
+        return;
+    }
 
-    posAttrib = glGetAttribLocation(shaderProgram, "position");
+    shader.build(fragSource, vertexShader);
+
+    posAttrib = glGetAttribLocation(shader.getProgram(), "position");
     glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(posAttrib);
 }
@@ -135,19 +54,16 @@ void FragTool::setFragShaderPath(const string& shaderPath) {
 void FragTool::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUseProgram(shaderProgram);
+    shader.use();
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    glUniform2f(glGetUniformLocation(shaderProgram, "resolution"), width, height);
-    glUniform1f(glGetUniformLocation(shaderProgram, "time"), glfwGetTime());
+    shader.sendUniform("resolution", width, height);
+    shader.sendUniform("time", glfwGetTime());
 
     glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(posAttrib);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glUseProgram(0);
-    glEnableVertexAttribArray(0);
 }
 
 void FragTool::fragmentHasChanged() {
@@ -247,15 +163,16 @@ void FragTool::renderingThread() {
         
         if(fragHasChanged) {
             string fragSource;
-            if(loadShaderSource(fragShaderPath, &fragSource)) {
-                glDetachShader(shaderProgram, fragmentId);
-                linkShaderToProgram(shaderProgram, fragSource.c_str(), GL_FRAGMENT_SHADER);
+
+            if(loadFromPath(fragShaderPath, &fragSource)) {
+                shader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+                shader.build(fragSource, vertexShader);
                 fragHasChanged = false;
             }
         }
 
         render(); 
-        renderLog(); 
+        //renderLog(); 
 
         glfwPollEvents();
     }
