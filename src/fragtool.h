@@ -9,6 +9,7 @@
 #include "default_vert.h"
 #include "utils.h"
 #include "shader.h"
+#include "screenlog.h"
 
 using namespace std;
 
@@ -31,9 +32,8 @@ public:
 
 private:
     void render();
-    void renderLog();
     void initShader();
-    void initFont();
+
     void handleError(const string& message, int exitStatus);
     bool linkShaderToProgram(GLuint program, const GLchar* source, GLenum type);
     bool loadShaderSource(const string& path, string* into);
@@ -55,13 +55,6 @@ private:
     int width;
     int height;
 
-    FONScontext* fs;
-    FONSeffectType effect;
-    
-    int font;
-    vector<fsuint> textDisplay;
-    string shaderLog;
-    bool bufferedLog;
     Shader shader;
 };
 
