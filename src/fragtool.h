@@ -9,13 +9,13 @@
 #include "default_vert.h"
 #include "utils.h"
 #include "shader.h"
+#include "log.h"
 
 using namespace std;
 
 class FragTool {
-public:
-    FragTool();
 
+public:
     void watchingThread();
     void renderingThread();
     void setChildProcess(pid_t pid);
@@ -31,18 +31,17 @@ public:
 
 private:
     void render();
-    void renderLog();
+    void init();
     void initShader();
-    void initFont();
+
     void handleError(const string& message, int exitStatus);
     bool linkShaderToProgram(GLuint program, const GLchar* source, GLenum type);
     bool loadShaderSource(const string& path, string* into);
     GLuint compileShader(const GLchar* src, GLenum type);
     void printShaderInfoLog(GLuint shader);
 
-    GLFWwindow* window;
     bool fragHasChanged;
-
+    GLFWwindow* window;
     GLuint vbo;
     GLint posAttrib;
     string fragShaderPath;
@@ -51,18 +50,11 @@ private:
     pid_t parentProcess;
 
     FileWatcher watcher;
+    Shader shader;
 
     int width;
     int height;
 
-    FONScontext* fs;
-    FONSeffectType effect;
-    
-    int font;
-    vector<fsuint> textDisplay;
-    string shaderLog;
-    bool bufferedLog;
-    Shader shader;
 };
 
 extern void handleResize(GLFWwindow* window, int w, int h);

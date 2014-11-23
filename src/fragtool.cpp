@@ -1,19 +1,12 @@
 #include "fragtool.h"
 
-#define GLFONTSTASH_IMPLEMENTATION
-#include "glfontstash.h"
-
-FragTool::FragTool() {
+void FragTool::init() {
+    shader.log = &(ScreenLog::Instance());
     fragHasChanged = false;
+    initShader();
 }
 
 void FragTool::destroy() {
-    if(bufferedLog) {
-        for(auto id : textDisplay) {
-            glfonsUnbufferText(fs, id);
-        }
-    }
-    glfonsDelete(fs);
     glDeleteBuffers(1, &vbo);
 }
 
@@ -70,60 +63,6 @@ void FragTool::fragmentHasChanged() {
     fragHasChanged = true;
 }
 
-void FragTool::initFont() {
-    fs = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
-    font = fonsAddFont(fs, "sans", "/Library/Fonts/Arial.ttf");
-
-    if(font == FONS_INVALID) {
-        std::cerr << "Could not add font normal" << std::endl;
-        glfonsDelete(fs);
-        fs = NULL;
-    } else {
-        effect = FONS_EFFECT_NONE;
-        
-        fonsSetSize(fs, 25);
-        fonsSetFont(fs, font);
-    }
-}
-
-void FragTool::renderLog() {
-    if(shaderLog.compare("") == 0) {
-        if(bufferedLog) {
-            for(auto id : textDisplay) {
-                glfonsUnbufferText(fs, id);
-            }
-            textDisplay.clear();
-            bufferedLog = false;
-        }
-    } else {
-        if(!bufferedLog) {
-            for(auto str : strSplit(shaderLog, '\n')) {
-                fsuint id;
-                glfonsBufferText(fs, str.c_str(), &id, effect);
-                textDisplay.push_back(id);   
-            }
-            bufferedLog = true;
-        }
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable(GL_TEXTURE_2D);
-        glDisable(GL_DEPTH_TEST);
-
-        float yOffset = 25.0;
-        float yPad = yOffset;
-
-        glfonsPushMatrix(fs);
-        glfonsTranslate(fs, 10.0, 0.0);
-        for(auto id : textDisplay) {
-            glfonsTranslate(fs, 0.0, yPad);
-            glfonsDrawText(fs, id); 
-        } 
-        glfonsPopMatrix(fs);
-    }
-}
-
 void FragTool::renderingThread() {
     width = 800;
     height = 600;
@@ -151,10 +90,8 @@ void FragTool::renderingThread() {
     glfwSetWindowSizeCallback(window, handleResize);
     glfwSetKeyCallback(window, handleKeypress);
 
-    initShader();
-    initFont();
+    init();
 
-    glfonsUpdateViewport(fs);
     glClearColor(56.0/255, 101.0/255, 190.0/255, 1);
 
     while(!glfwWindowShouldClose(window)) {
@@ -172,7 +109,8 @@ void FragTool::renderingThread() {
         }
 
         render(); 
-        //renderLog(); 
+        ScreenLog::Instance().render(true); 
+        //ScreenLog::Instance().clear(); 
 
         glfwPollEvents();
     }

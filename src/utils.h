@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <fstream>
 #include <vector>
+#include <cassert>
 
 static void redefineSignal(int sig, void (*handler)(int)) {
     struct sigaction action;
