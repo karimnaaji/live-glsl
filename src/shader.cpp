@@ -8,7 +8,6 @@ Shader::~Shader() {
     glDeleteProgram(program);
 }
 
-// TODO : add param GL_FRAG | GL_VERT | GL_BOTH
 bool Shader::build(const std::string& fragmentSrc, const std::string& vertexSrc) {
 	vertexShader = compileShader(vertexSrc, GL_VERTEX_SHADER);
 
@@ -36,8 +35,6 @@ bool Shader::build(const std::string& fragmentSrc, const std::string& vertexSrc)
 
 	return true;
 }
-
-// TODO shader : unlink (GL_FRAG | GL_VERT)
 
 GLuint Shader::link() {
 	program = glCreateProgram();
@@ -87,8 +84,6 @@ GLuint Shader::compileShader(const std::string& src, GLenum type) {
 		// TODO : send data to log
 		glDeleteShader(shader);
 		return 0;
-	} else {
-		// TODO : clear log
 	}
 
 	return shader;

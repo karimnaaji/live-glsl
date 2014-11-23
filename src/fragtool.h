@@ -9,14 +9,13 @@
 #include "default_vert.h"
 #include "utils.h"
 #include "shader.h"
-#include "screenlog.h"
+#include "log.h"
 
 using namespace std;
 
 class FragTool {
-public:
-    FragTool();
 
+public:
     void watchingThread();
     void renderingThread();
     void setChildProcess(pid_t pid);
@@ -32,6 +31,7 @@ public:
 
 private:
     void render();
+    void init();
     void initShader();
 
     void handleError(const string& message, int exitStatus);
@@ -56,6 +56,7 @@ private:
     int height;
 
     Shader shader;
+    
 };
 
 extern void handleResize(GLFWwindow* window, int w, int h);

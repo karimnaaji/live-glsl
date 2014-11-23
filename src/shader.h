@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics.h"
+#include "log.h"
 #include "utils.h"
 #include <string>
 
@@ -23,7 +24,8 @@ public:
     void sendUniform(const std::string& name, float x, float y);
 
     void detach(GLenum type);
-    
+
+    Log* log;
 private:
     GLuint program;
     GLuint fragmentShader;

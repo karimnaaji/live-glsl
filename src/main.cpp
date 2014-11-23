@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 
     // shared memory block
     fragtool = (FragTool *) shmat(shmId, NULL, 0);
-    
+
     switch(child) {
         case -1: {
             shmctl(shmId, IPC_RMID, NULL);

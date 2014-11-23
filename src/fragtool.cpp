@@ -1,7 +1,9 @@
 #include "fragtool.h"
 
-FragTool::FragTool() {
+void FragTool::init() {
+    shader.log = &(ScreenLog::Instance());
     fragHasChanged = false;
+    initShader();
 }
 
 void FragTool::destroy() {
@@ -88,7 +90,7 @@ void FragTool::renderingThread() {
     glfwSetWindowSizeCallback(window, handleResize);
     glfwSetKeyCallback(window, handleKeypress);
 
-    initShader();
+    init();
 
     glClearColor(56.0/255, 101.0/255, 190.0/255, 1);
 
