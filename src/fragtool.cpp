@@ -109,7 +109,8 @@ void FragTool::renderingThread() {
         }
 
         render(); 
-        //renderLog(); 
+        ScreenLog::Instance().render(true); 
+        //ScreenLog::Instance().clear(); 
 
         glfwPollEvents();
     }

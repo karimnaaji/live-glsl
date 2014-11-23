@@ -6,6 +6,7 @@
 #include <string>
 
 class Shader {
+
 public:
     Shader();
     ~Shader();
@@ -26,6 +27,7 @@ public:
     void detach(GLenum type);
 
     Log* log;
+
 private:
     GLuint program;
     GLuint fragmentShader;
@@ -35,4 +37,5 @@ private:
     GLuint compileShader(const std::string& src, GLenum type);
     GLint getUniformLocation(const std::string& uniformName) const;
     void printInfoLog(GLuint shader);
+    
 };

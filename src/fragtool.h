@@ -40,9 +40,8 @@ private:
     GLuint compileShader(const GLchar* src, GLenum type);
     void printShaderInfoLog(GLuint shader);
 
-    GLFWwindow* window;
     bool fragHasChanged;
-
+    GLFWwindow* window;
     GLuint vbo;
     GLint posAttrib;
     string fragShaderPath;
@@ -51,12 +50,11 @@ private:
     pid_t parentProcess;
 
     FileWatcher watcher;
+    Shader shader;
 
     int width;
     int height;
 
-    Shader shader;
-    
 };
 
 extern void handleResize(GLFWwindow* window, int w, int h);

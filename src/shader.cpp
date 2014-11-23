@@ -12,7 +12,6 @@ bool Shader::build(const std::string& fragmentSrc, const std::string& vertexSrc)
 	vertexShader = compileShader(vertexSrc, GL_VERTEX_SHADER);
 
 	if(!vertexShader) {
-		
 		glDeleteShader(vertexShader);
 		return false;
 	}
@@ -20,7 +19,6 @@ bool Shader::build(const std::string& fragmentSrc, const std::string& vertexSrc)
 	fragmentShader = compileShader(fragmentSrc, GL_FRAGMENT_SHADER);
 
 	if(!fragmentShader) {
-		
 		glDeleteShader(fragmentShader);
 		return false;
 	}
@@ -29,7 +27,6 @@ bool Shader::build(const std::string& fragmentSrc, const std::string& vertexSrc)
     	glDeleteShader(vertexShader);
     	glDeleteShader(fragmentShader);
 	} else {
-
 		return false;
 	}
 
@@ -48,10 +45,13 @@ GLuint Shader::link() {
     glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
 
     if(!linkStatus) {
-        // TODO : print link status
+        printInfoLog(program);
         glDeleteProgram(program);
         return 0;
+    } else {
+        log->clear();
     }
+
     return program;
 }
 
@@ -81,10 +81,12 @@ GLuint Shader::compileShader(const std::string& src, GLenum type) {
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 
 	if(!status) {
-		// TODO : send data to log
+        printInfoLog(shader);
 		glDeleteShader(shader);
 		return 0;
-	}
+	} else {
+        log->clear();
+    }
 
 	return shader;
 }
@@ -126,9 +128,14 @@ void Shader::printInfoLog(GLuint shader) {
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
 
     if(length > 1) {
-        char* log = new char[length];
-        glGetShaderInfoLog(shader, length, NULL, log);
-        std::cerr << "Log: " << log << std::endl;
-        delete[] log;
+        char* info = new char[length];
+
+        glGetShaderInfoLog(shader, length, NULL, info);
+
+        std::cerr << info << std::endl;
+
+        *log << info;
+
+        delete[] info;
     }
 }
