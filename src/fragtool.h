@@ -35,11 +35,7 @@ private:
     void initShader();
 
     void handleError(const string& message, int exitStatus);
-    bool linkShaderToProgram(GLuint program, const GLchar* source, GLenum type);
-    bool loadShaderSource(const string& path, string* into);
-    GLuint compileShader(const GLchar* src, GLenum type);
-    void printShaderInfoLog(GLuint shader);
-
+   
     bool fragHasChanged;
     GLFWwindow* window;
     GLuint vbo;
