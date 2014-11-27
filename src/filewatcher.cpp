@@ -4,17 +4,17 @@ FileWatcher::FileWatcher(const string& absolutePath, void (*cb)(void))
 : file(absolutePath), callback(cb) {}
 
 void FileWatcher::startWatching() {
-    ctxDesc = new ctx_desc;
+    ctxDesc = std::unique_ptr<ctx_desc>(new ctx_desc);
     ctxDesc->len = 0;
     ctxDesc->size = 2;
-    ctxDesc->paths = new char*[ctxDesc->size];
+    ctxDesc->paths = std::unique_ptr<char*[]>(new char*[ctxDesc->size]);
     ctxDesc->watcher = this;
 
     CFMutableArrayRef path = CFArrayCreateMutable(NULL, 1, NULL);
     CFStringRef pathStr = CFStringCreateWithCString(NULL, file.c_str(), kCFStringEncodingUTF8);
     CFArrayAppendValue(path, pathStr);
 
-    FSEventStreamContext ctx = { 0, ctxDesc, NULL, NULL, NULL };
+    FSEventStreamContext ctx = { 0, ctxDesc.get(), NULL, NULL, NULL };
     FSEventStreamRef stream;
     FSEventStreamCreateFlags flags = kFSEventStreamCreateFlagFileEvents;
 

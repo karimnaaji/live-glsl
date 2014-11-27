@@ -4,6 +4,7 @@
 #include <CoreServices/CoreServices.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <iostream>
+#include <memory>
 
 using namespace std;
 
@@ -12,7 +13,7 @@ class FileWatcher;
 typedef struct {
     size_t len;
     size_t size;
-    char **paths;
+    std::unique_ptr<char*[]> paths;
     FileWatcher* watcher;
 } ctx_desc;
 
@@ -25,7 +26,7 @@ public:
     void processEvent() const;
     
 private:
-    ctx_desc* ctxDesc;
+    std::unique_ptr<ctx_desc> ctxDesc;
     string file;
     void (*callback)(void);
 };
