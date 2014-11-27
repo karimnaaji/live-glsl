@@ -67,9 +67,13 @@ void FragTool::render() {
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    //system->getWaveData(wavedata, 256, 0);
-    //system->getSpectrum(spectrum, 256, 0, FMOD_DSP_FFT_WINDOW_TRIANGLE);
+    float spectrum[256];
+    float wavedata[256];
+    system->getWaveData(wavedata, 256, 0);
+    system->getSpectrum(spectrum, 256, 0, FMOD_DSP_FFT_WINDOW_TRIANGLE);
 
+    shader.sendUniform("wave", 256, wavedata);
+    shader.sendUniform("spectrum", 256, spectrum);
     shader.sendUniform("resolution", width, height);
     shader.sendUniform("time", glfwGetTime());
 
