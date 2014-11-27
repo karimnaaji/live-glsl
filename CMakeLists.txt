@@ -35,6 +35,10 @@ include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/include)
 
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
+file(COPY
+    ${PROJECT_SOURCE_DIR}/lib/precompiled/libfmodex.dylib
+    DESTINATION ${PROJECT_SOURCE_DIR}/build)
+
 target_link_libraries(${EXECUTABLE_NAME} 
     glfw ${GLFW_LIBRARIES} ${GLEW_LIBRARY} 
     ${PROJECT_SOURCE_DIR}/lib/precompiled/libfmodex.dylib)
