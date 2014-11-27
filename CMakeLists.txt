@@ -14,11 +14,11 @@ set(SOURCES
     src/log.cpp
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/lib/fontstash)
+include_directories(${CMAKE_SOURCE_DIR}/lib/include/fontstash)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/lib/glm)
-include_directories(${CMAKE_SOURCE_DIR}/lib/glm)
-include_directories(${CMAKE_SOURCE_DIR}/lib/glm/gtc)
+add_subdirectory(${CMAKE_SOURCE_DIR}/lib/include/glm)
+include_directories(${CMAKE_SOURCE_DIR}/lib/include/glm)
+include_directories(${CMAKE_SOURCE_DIR}/lib/include/glm/gtc)
 
 find_package(GLEW REQUIRED)
 
