@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 
     int shmId = shmget(IPC_PRIVATE, sizeof(FragTool), 0666);
 
-    std::string fragShaderPath = string(argv[1]);
+    std::string fragShaderPath = std::string(argv[1]);
 
     pid_t parent = getpid();
     pid_t child = fork();
@@ -63,7 +63,12 @@ int main(int argc, char **argv) {
         }
 
         default: {
+            if(argc > 2) {
+                fragtool->loadSoundSource(std::string(argv[2]));
+            }
+
             fragtool->setFragShaderPath(fragShaderPath);
+            fragtool->init();
 
             fragtool->setChildProcess(child);
             fragtool->setParentProcess(parent);

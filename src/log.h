@@ -42,7 +42,6 @@ private:
 
     FONScontext* fs;
     FONSeffectType effect;
-    int fontSize;
     int font;
     bool bufferedLog;
     std::vector<fsuint> textDisplay;
