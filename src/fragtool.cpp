@@ -1,6 +1,7 @@
 #include "fragtool.h"
 
 void FragTool::init() {
+    initGL();
     shader.log = &(ScreenLog::Instance());
     fragHasChanged = false;
     initShader();
@@ -22,8 +23,9 @@ void FragTool::initShader() {
     string fragSource;
 
     if(!loadFromPath(fragShaderPath, &fragSource)) {
+        std::cerr << "Unable to load " << fragShaderPath << std::endl;
         return;
-    }
+    } 
 
     shader.build(fragSource, vertexShader);
 
@@ -44,6 +46,20 @@ void FragTool::setFragShaderPath(const string& shaderPath) {
     fragShaderPath = shaderPath;
 }
 
+void FragTool::loadSoundSource(const string& soundPath) {
+    hasSound = true;
+    FMOD::Sound *sound;
+    FMOD::Channel *channel;
+    FMOD_RESULT result;
+
+    FMOD::System_Create(&system);
+    channel = 0;
+    system->init(32, FMOD_INIT_NORMAL,0);
+    system->createSound(soundPath.c_str(), FMOD_HARDWARE, 0, &sound);
+    sound->setMode(FMOD_LOOP_OFF);
+    system->playSound(FMOD_CHANNEL_FREE, sound, false, &channel);
+}
+
 void FragTool::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -51,6 +67,13 @@ void FragTool::render() {
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
+    float spectrum[256];
+    float wavedata[256];
+    system->getWaveData(wavedata, 256, 0);
+    system->getSpectrum(spectrum, 256, 0, FMOD_DSP_FFT_WINDOW_TRIANGLE);
+
+    shader.sendUniform("wave", 256, wavedata);
+    shader.sendUniform("spectrum", 256, spectrum);
     shader.sendUniform("resolution", width, height);
     shader.sendUniform("time", glfwGetTime());
 
@@ -63,12 +86,13 @@ void FragTool::fragmentHasChanged() {
     fragHasChanged = true;
 }
 
-void FragTool::renderingThread() {
+void FragTool::initGL() {
     width = 800;
     height = 600;
 
-    if(!glfwInit())
+    if(!glfwInit()) {
         handleError("GLFW init failed", -1);
+    }
 
     window = glfwCreateWindow(width, height, "fragtool", NULL, NULL);
 
@@ -89,9 +113,9 @@ void FragTool::renderingThread() {
 
     glfwSetWindowSizeCallback(window, handleResize);
     glfwSetKeyCallback(window, handleKeypress);
+}
 
-    init();
-
+void FragTool::renderingThread() {
     glClearColor(56.0/255, 101.0/255, 190.0/255, 1);
 
     while(!glfwWindowShouldClose(window)) {
@@ -110,7 +134,6 @@ void FragTool::renderingThread() {
 
         render(); 
         ScreenLog::Instance().render(true); 
-        //ScreenLog::Instance().clear(); 
 
         glfwPollEvents();
     }

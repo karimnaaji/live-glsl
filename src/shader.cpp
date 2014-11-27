@@ -123,6 +123,12 @@ void Shader::sendUniform(const std::string& name, float x, float y) {
 	}
 }
 
+void Shader::sendUniform(const std::string& name, int size, float* array) {
+    if(isInUse()) {
+        glUniform1fv(getUniformLocation(name), size, array);
+    }
+}
+
 void Shader::printInfoLog(GLuint shader) {
     GLint length = 0;
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
