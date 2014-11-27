@@ -20,7 +20,7 @@ make
 ```
 
 ```bash
-./fragtool.out fragment_shader_to_watch
+./fragtool.out fragment_shader_to_watch [sound_path]
 ```
 
 fragment shader inputs
@@ -29,5 +29,5 @@ fragment shader inputs
 Possible use of these uniforms : 
  + time : float
  + resolution : vec2
- + uniform float spectrum[256];
- + uniform float wave[256];
+ + uniform float spectrum[256]; // spectrum of sound
+ + uniform float wave[256];     // wave of sound
