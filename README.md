@@ -29,3 +29,5 @@ fragment shader inputs
 Possible use of these uniforms : 
  + time : float
  + resolution : vec2
+ + uniform float spectrum[256];
+ + uniform float wave[256];
