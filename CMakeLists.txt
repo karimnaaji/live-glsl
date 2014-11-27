@@ -14,6 +14,7 @@ set(SOURCES
     src/log.cpp
 )
 
+include_directories(${CMAKE_SOURCE_DIR}/lib/include/fmod)
 include_directories(${CMAKE_SOURCE_DIR}/lib/include/fontstash)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/include/glm)
@@ -34,4 +35,6 @@ include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/include)
 
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
-target_link_libraries(${EXECUTABLE_NAME} glfw ${GLFW_LIBRARIES} ${GLEW_LIBRARY})
+target_link_libraries(${EXECUTABLE_NAME} 
+    glfw ${GLFW_LIBRARIES} ${GLEW_LIBRARY} 
+    ${PROJECT_SOURCE_DIR}/lib/precompiled/libfmodex.dylib)
