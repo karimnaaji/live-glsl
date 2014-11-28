@@ -8,6 +8,11 @@ void FragTool::init() {
 }
 
 void FragTool::destroy() {
+    if(hasSound) {
+        channel->stop();
+        sound->release();
+        system->release();
+    }
     glDeleteBuffers(1, &vbo);
 }
 
@@ -46,17 +51,15 @@ void FragTool::setFragShaderPath(const string& shaderPath) {
     fragShaderPath = shaderPath;
 }
 
-void FragTool::loadSoundSource(const string& soundPath) {
+void FragTool::loadSoundSource(const string& path) {
     hasSound = true;
-    FMOD::Sound *sound;
-    FMOD::Channel *channel;
+    soundPath = path;
     FMOD_RESULT result;
 
     FMOD::System_Create(&system);
-    channel = 0;
     system->init(32, FMOD_INIT_NORMAL,0);
     system->createSound(soundPath.c_str(), FMOD_HARDWARE, 0, &sound);
-    sound->setMode(FMOD_LOOP_OFF);
+    //sound->setMode(FMOD_LOOP_OFF);
     system->playSound(FMOD_CHANNEL_FREE, sound, false, &channel);
 }
 

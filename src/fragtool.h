@@ -40,8 +40,13 @@ private:
     void handleError(const string& message, int exitStatus);
    
     bool fragHasChanged;
+    
+    FMOD::Channel *channel;
+    FMOD::Sound *sound;
     FMOD::System *system;
+    std::string soundPath;
     bool hasSound;
+
     GLFWwindow* window;
     GLuint vbo;
     GLint posAttrib;
