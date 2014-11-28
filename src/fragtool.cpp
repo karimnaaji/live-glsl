@@ -60,7 +60,7 @@ void FragTool::loadSoundSource(const string& path) {
     system->init(32, FMOD_INIT_NORMAL,0);
     system->createSound(soundPath.c_str(), FMOD_HARDWARE, 0, &sound);
     //sound->setMode(FMOD_LOOP_OFF);
-    system->playSound(FMOD_CHANNEL_FREE, sound, false, &channel);
+    //system->playSound(FMOD_CHANNEL_FREE, sound, false, &channel);
 }
 
 void FragTool::render() {
@@ -70,13 +70,16 @@ void FragTool::render() {
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    float spectrum[256];
-    float wavedata[256];
-    system->getWaveData(wavedata, 256, 0);
-    system->getSpectrum(spectrum, 256, 0, FMOD_DSP_FFT_WINDOW_TRIANGLE);
+    if(hasSound) {
+        float spectrum[256];
+        float wavedata[256];
+        system->getWaveData(wavedata, 256, 0);
+        system->getSpectrum(spectrum, 256, 0, FMOD_DSP_FFT_WINDOW_TRIANGLE);
 
-    shader.sendUniform("wave", 256, wavedata);
-    shader.sendUniform("spectrum", 256, spectrum);
+        shader.sendUniform("wave", 256, wavedata);
+        shader.sendUniform("spectrum", 256, spectrum);
+    }
+    
     shader.sendUniform("resolution", width, height);
     shader.sendUniform("time", glfwGetTime());
 
