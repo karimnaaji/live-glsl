@@ -59,8 +59,9 @@ void FragTool::loadSoundSource(const string& path) {
     FMOD::System_Create(&system);
     system->init(32, FMOD_INIT_NORMAL,0);
     system->createSound(soundPath.c_str(), FMOD_HARDWARE, 0, &sound);
-    //sound->setMode(FMOD_LOOP_OFF);
-    //system->playSound(FMOD_CHANNEL_FREE, sound, false, &channel);
+    system->playSound(FMOD_CHANNEL_FREE, sound, false, &channel);
+    channel->setMode(FMOD_LOOP_NORMAL);
+    channel->setLoopCount(-1);
 }
 
 void FragTool::render() {
@@ -79,7 +80,7 @@ void FragTool::render() {
         shader.sendUniform("wave", 256, wavedata);
         shader.sendUniform("spectrum", 256, spectrum);
     }
-    
+
     shader.sendUniform("resolution", width, height);
     shader.sendUniform("time", glfwGetTime());
 
