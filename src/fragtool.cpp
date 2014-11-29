@@ -81,7 +81,7 @@ void FragTool::render() {
         float spectrum[256];
         float wavedata[256];
         system->getWaveData(wavedata, 256, 0);
-        system->getSpectrum(spectrum, 256, 0, FMOD_DSP_FFT_WINDOW_TRIANGLE);
+        system->getSpectrum(spectrum, 256, 0, FMOD_DSP_FFT_WINDOW_BLACKMANHARRIS);
 
         shader.sendUniform("wave", 256, wavedata);
         shader.sendUniform("spectrum", 256, spectrum);
