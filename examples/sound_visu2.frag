@@ -51,19 +51,16 @@ void main(void) {
         float x = 1.0/256.0 * float(i);
         color.g += line(vec2(x, 0.0), vec2(x, spectrum[i] * 2.0), uv, 0.005, 5.0);
     }
-#else define
+#else
     const vec3 col1 = vec3(0.2,0.25,0.5);
     const vec3 col2 = vec3(0.5,0.1,0.1);
     const float edgeSmooth = 0.015;
     float len = length(p);
 
-    for(int i = 1; i < 2; i++) {
-        float x = 1.0/50.0 * float(i);
-        if(spectrum[i] > 0.3) {
-            float sphereRadius = spectrum[i];
-            float a = 1.0 - smoothstep(sphereRadius, sphereRadius + edgeSmooth, len);
-            color = vec4(vec3(a), 1.0);
-        }
+    if(spectrum[2] > 0.3) {
+        float sphereRadius = spectrum[2];
+        float a = 1.0 - smoothstep(sphereRadius, sphereRadius + edgeSmooth, len);
+        color = vec4(vec3(a), 1.0);
     }
 
     float pad = PI / (256.0/10.0);
