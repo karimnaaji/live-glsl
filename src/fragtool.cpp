@@ -56,7 +56,13 @@ void FragTool::loadSoundSource(const string& path) {
     soundPath = path;
     FMOD_RESULT result;
 
-    FMOD::System_Create(&system);
+    result = FMOD::System_Create(&system);
+
+    if(result != FMOD_OK) {
+        std::cerr << "FMOD error! (" << result << ")" << std::endl;
+        return;
+    }
+
     system->init(32, FMOD_INIT_NORMAL,0);
     system->createSound(soundPath.c_str(), FMOD_HARDWARE, 0, &sound);
     system->playSound(FMOD_CHANNEL_FREE, sound, false, &channel);
