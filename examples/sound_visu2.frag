@@ -4,7 +4,8 @@ uniform float spectrum[256];
 uniform float wave[256];
 
 //#define VISU_1
-//#define VISU_SPECTRUM
+//#define VISU_2
+#define PI 3.14159265
 
 float line(vec2 p1, vec2 p2, vec2 p, float width, float spread)
 {
@@ -38,8 +39,6 @@ vec3 stripe(float p, float width, vec3 color1, vec3 color2)
     return pmod > w4 ? m1 : m2;
 }
 
-#define PI 3.14
-
 void main(void) 
 {
     vec2 uv = vec2(gl_FragCoord.xy / resolution);
@@ -59,7 +58,7 @@ void main(void)
         } 
     }
 #else
-#ifdef VISU_SPECTRUM
+#ifdef VISU_2
     for(int i = 0; i < 256; i+=10) {
         float x = 1.0/256.0 * float(i);
         color.g += line(vec2(x, 0.0), vec2(x, spectrum[i] * 2.0), uv, 0.005, 5.0);
