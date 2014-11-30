@@ -83,7 +83,7 @@ void main(void)
     float offset = time + spectrum[2];
     for(float i = 0.0; i < 2.0 * PI; i+=pad) {
         if(spectrum[ref2] > 0.1) {
-            float r = 0.2 + (0.5 + 0.5 * wave[k++]);
+            float r = 0.7 + 0.5 * wave[k++];
             if(k > 256) k = 0;
             color.rgb += vec3(line(
                 vec2(cos(i + offset),sin(i + offset)) * r + cos(i) * spectrum[ref2], 
