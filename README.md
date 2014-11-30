@@ -23,6 +23,11 @@ make
 ./fragtool.out fragment_shader_to_watch [sound_path]
 ```
 
+example
+-------
+
+[sound experiment video](https://vimeo.com/113176634)
+
 fragment shader inputs
 ----------------------
 
