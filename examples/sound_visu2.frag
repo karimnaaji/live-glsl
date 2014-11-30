@@ -26,9 +26,22 @@ float line(vec2 p1, vec2 p2, vec2 p, float width, float spread)
     }
 }
 
+vec3 stripe(float p, float width, vec3 color1, vec3 color2) 
+{
+    float pmod = mod(p, width / 2.0);
+    float w4 = width / 4.0;
+    float f = abs(pmod-w4)/w4;
+    float f1 = pow(f, 6.0);
+    float f2 = pow(1.0 - f, 6.0);
+    vec3 m1 = mix(color1, color2, f1);
+    vec3 m2 = mix(color2, color1, f2);
+    return pmod > w4 ? m1 : m2;
+}
+
 #define PI 3.14
 
-void main(void) {
+void main(void) 
+{
     vec2 uv = vec2(gl_FragCoord.xy / resolution);
     vec2 p = -1.0 + 2.0 * uv;
     vec4 color = vec4(0.0);
@@ -56,26 +69,36 @@ void main(void) {
     const vec3 col2 = vec3(0.5,0.1,0.1);
     const float edgeSmooth = 0.015;
     float len = length(p);
+    int ref1 = 2;
+    int ref2 = 0;
+    int ref3 = 10;
 
-    if(spectrum[2] > 0.3) {
-        float sphereRadius = spectrum[2];
+    if(spectrum[ref1] > 0.3) {
+        float sphereRadius = spectrum[ref1];
         float a = 1.0 - smoothstep(sphereRadius, sphereRadius + edgeSmooth, len);
         color = vec4(vec3(a), 1.0);
     }
 
-    float pad = PI / (256.0/10.0);
+    float pad = PI / (1024.0/10.0);
     int k = 0;
+    float offset = time + spectrum[2];
     for(float i = 0.0; i < 2.0 * PI; i+=pad) {
-        if(spectrum[0] > 0.1) {
-        float rad = 0.2 + (0.5 + 0.5 * wave[k++]);
-        color.rgb += vec3(line(
-            vec2(cos(i + time),sin(i + time)) * rad, 
-            vec2(cos(i+pad + time), sin(i+pad + time)) * rad, 
-            p, 0.005, 10.0));
+        if(spectrum[ref2] > 0.1) {
+            float r = 0.2 + (0.5 + 0.5 * wave[k++]);
+            if(k > 256) k = 0;
+            color.rgb += vec3(line(
+                vec2(cos(i + offset),sin(i + offset)) * r + cos(i) * spectrum[ref2], 
+                vec2(cos(i+pad + offset), sin(i+pad + offset)) * r + cos(i) * spectrum[ref2],  
+                p, 0.005, 10.0));
         } 
     }
 
-    color.rgb += mix(col1, col2, spectrum[0]);
+    color.rgb += mix(col1, col2, spectrum[ref2]);
+
+    float width = spectrum[ref3];
+    vec2 pmod = mod(p, width);
+    color.rgb += stripe(vec2(pmod-(width/2.0)).y + sin(time * 0.5), 
+        width, vec3(0.0), vec3(1.0)) * (width+0.7) * 0.01;
 #endif
 #endif
 
