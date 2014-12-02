@@ -3,10 +3,12 @@ uniform vec2 resolution;
 uniform float spectrum[256];
 uniform float wave[256];
 
-//#define VISU_1
-//#define VISU_2
 #define PI 3.14159265
 
+const vec3 col1 = vec3(0.2,0.25,0.5);
+const vec3 col2 = vec3(0.5,0.1,0.1);
+const float edgeSmooth = 0.015;
+    
 float line(vec2 p1, vec2 p2, vec2 p, float width, float spread)
 {
     width = 1.0 / width;
@@ -44,29 +46,6 @@ void main(void)
     vec2 uv = vec2(gl_FragCoord.xy / resolution);
     vec2 p = -1.0 + 2.0 * uv;
     vec4 color = vec4(0.0);
-
-#ifdef VISU_1
-    float pad = PI / (256.0/10.0);
-    int k = 0;
-    for(float i = 0.0; i < 2.0 * PI; i+=pad) {
-        if(spectrum[0] > 0.2) {
-        float rad = 0.2 + (0.5 + 0.5 * wave[k++]);
-        color.rgb += vec3(line(
-            vec2(cos(i + time),sin(i + time)) * rad, 
-            vec2(cos(i+pad + time), sin(i+pad + time)) * rad, 
-            p, 0.005, 10.0));
-        } 
-    }
-#else
-#ifdef VISU_2
-    for(int i = 0; i < 256; i+=10) {
-        float x = 1.0/256.0 * float(i);
-        color.g += line(vec2(x, 0.0), vec2(x, spectrum[i] * 2.0), uv, 0.005, 5.0);
-    }
-#else
-    const vec3 col1 = vec3(0.2,0.25,0.5);
-    const vec3 col2 = vec3(0.5,0.1,0.1);
-    const float edgeSmooth = 0.015;
     float len = length(p);
     int ref1 = 2;
     int ref2 = 0;
@@ -98,8 +77,6 @@ void main(void)
     vec2 pmod = mod(p, width);
     color.rgb += stripe(vec2(pmod-(width/2.0)).y + sin(time * 0.5), 
         width, vec3(0.0), vec3(1.0)) * (width+0.7) * 0.01;
-#endif
-#endif
 
     gl_FragColor = color;
 }
