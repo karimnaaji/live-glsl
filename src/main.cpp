@@ -52,7 +52,9 @@ int main(int argc, char **argv) {
     fragtool = (FragTool *) shmat(shmId, NULL, 0);
 
     fragtool->setFragShaderPath(fragShaderPath);
-    
+    fragtool->setChildProcess(child);
+    fragtool->setParentProcess(parent);
+
     switch(child) {
         case -1: {
             shmctl(shmId, IPC_RMID, NULL);
@@ -70,9 +72,6 @@ int main(int argc, char **argv) {
             }
 
             fragtool->init();
-
-            fragtool->setChildProcess(child);
-            fragtool->setParentProcess(parent);
 
             redefineSignal(SIGALRM, fileHasChanged);
 

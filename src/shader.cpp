@@ -9,35 +9,35 @@ Shader::~Shader() {
 }
 
 bool Shader::build(const std::string& fragmentSrc, const std::string& vertexSrc) {
-	vertexShader = compileShader(vertexSrc, GL_VERTEX_SHADER);
+    vertexShader = compileShader(vertexSrc, GL_VERTEX_SHADER);
 
-	if(!vertexShader) {
-		glDeleteShader(vertexShader);
-		return false;
-	}
-
-	fragmentShader = compileShader(fragmentSrc, GL_FRAGMENT_SHADER);
-
-	if(!fragmentShader) {
-		glDeleteShader(fragmentShader);
-		return false;
-	}
-
-	if(link()) {
+    if(!vertexShader) {
     	glDeleteShader(vertexShader);
-    	glDeleteShader(fragmentShader);
-	} else {
-		return false;
-	}
+    	return false;
+    }
 
-	return true;
+    fragmentShader = compileShader(fragmentSrc, GL_FRAGMENT_SHADER);
+
+    if(!fragmentShader) {
+        glDeleteShader(fragmentShader);
+        return false;
+    }
+
+    if(link()) {
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+    } else {
+        return false;
+    }
+
+    return true;
 }
 
 GLuint Shader::link() {
-	program = glCreateProgram();
+    program = glCreateProgram();
 
-	glAttachShader(program, vertexShader);
-	glAttachShader(program, fragmentShader);
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
 
     glLinkProgram(program);
 
@@ -56,39 +56,39 @@ GLuint Shader::link() {
 }
 
 const GLint Shader::getAttribLocation(const std::string& attribute) {
-	return glGetAttribLocation(program, attribute.c_str());
+    return glGetAttribLocation(program, attribute.c_str());
 }
 
 void Shader::use() const {
     if(!isInUse()) {
-    	glUseProgram(getProgram());
-	}
+        glUseProgram(getProgram());
+    }
 }
 
 bool Shader::isInUse() const {
-	GLint currentProgram = 0;
-	glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
-	return (getProgram() == (GLuint)currentProgram);
+    GLint currentProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
+    return (getProgram() == (GLuint)currentProgram);
 }
 
 GLuint Shader::compileShader(const std::string& src, GLenum type) {
-	GLint status;
-	GLuint shader = glCreateShader(type);
-	const GLchar* source = (const GLchar*) src.c_str();
+    GLint status;
+    GLuint shader = glCreateShader(type);
+    const GLchar* source = (const GLchar*) src.c_str();
 
-	glShaderSource(shader, 1, &source, NULL);
-	glCompileShader(shader);
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 
-	if(!status) {
+    if(!status) {
         printInfoLog(shader);
-		glDeleteShader(shader);
-		return 0;
-	} else {
+        glDeleteShader(shader);
+        return 0;
+    } else {
         log->clear();
     }
 
-	return shader;
+    return shader;
 }
 
 void Shader::detach(GLenum type) {
@@ -100,15 +100,15 @@ void Shader::detach(GLenum type) {
 		glDetachShader(vertexShader, GL_VERTEX_SHADER);
 	}
 
-	if(frag) {
-		glDeleteShader(fragmentShader);
-		glDetachShader(fragmentShader, GL_FRAGMENT_SHADER);
-	}
+    if(frag) {
+        glDeleteShader(fragmentShader);
+        glDetachShader(fragmentShader, GL_FRAGMENT_SHADER);
+    }
 }
 
 GLint Shader::getUniformLocation(const std::string& uniformName) const {
-	GLint uniform = glGetUniformLocation(program, uniformName.c_str());
-	return uniform;
+    GLint uniform = glGetUniformLocation(program, uniformName.c_str());
+    return uniform;
 }
 
 void Shader::sendUniform(const std::string& name, float x) {
