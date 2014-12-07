@@ -165,6 +165,7 @@ void FragTool::watchingThread() {
 
     string absolutePath(s);
 
+    std::cout << "Watching fragment file source: " << s << std::endl;
     watcher = FileWatcher(absolutePath, &watcherCallback);
     watcher.startWatching();
 }
