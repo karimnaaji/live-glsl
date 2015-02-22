@@ -9,8 +9,8 @@ build and run
 cloning with submodules:
 
 ```bash
-git clone --recursive git@github.com:karimnaaji/fragtool.git
-git submodule foreach git pull
+git clone git@github.com:karimnaaji/fragtool.git
+git submodule init && git submodule update
 ```
 
 ```bash
@@ -31,7 +31,7 @@ example
 fragment shader inputs
 ----------------------
 
-Possible use of these uniforms : 
+Possible use of these uniforms :
  + time : float
  + resolution : vec2
  + uniform float spectrum[256]; // spectrum of sound

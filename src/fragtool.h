@@ -17,7 +17,7 @@ using namespace std;
 class FragTool {
 
 public:
-    void init();
+    bool init();
     void watchingThread();
     void renderingThread();
     void setChildProcess(pid_t pid);
@@ -34,13 +34,11 @@ public:
 
 private:
     void render();
-    void initGL();
-    void initShader();
+    bool initGL();
+    bool initShader();
 
-    void handleError(const string& message, int exitStatus);
-   
     bool fragHasChanged;
-    
+
     FMOD::Channel *channel;
     FMOD::Sound *sound;
     FMOD::System *system;

@@ -1,10 +1,10 @@
 #include "fragtool.h"
 
-void FragTool::init() {
-    initGL();
+bool FragTool::init() {
+    bool init = initGL();
     shader.log = &(ScreenLog::Instance());
     fragHasChanged = false;
-    initShader();
+    return init && initShader();
 }
 
 void FragTool::destroy() {
@@ -13,30 +13,35 @@ void FragTool::destroy() {
         sound->release();
         system->release();
     }
+
     glDeleteBuffers(1, &vbo);
 }
 
-void FragTool::initShader() {
+bool FragTool::initShader() {
+    string fragSource;
+
+    if(!loadFromPath(fragShaderPath, &fragSource)) {
+        std::cerr << "Unable to load " << fragShaderPath << std::endl;
+        return false;
+    }
+
+    if(!shader.build(fragSource, vertexShader)) {
+        return false;
+    }
+
     float vertices[12];
-    
+
     quad(vertices);
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    string fragSource;
-
-    if(!loadFromPath(fragShaderPath, &fragSource)) {
-        std::cerr << "Unable to load " << fragShaderPath << std::endl;
-        return;
-    } 
-
-    shader.build(fragSource, vertexShader);
-
     posAttrib = glGetAttribLocation(shader.getProgram(), "position");
     glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(posAttrib);
+
+    return true;
 }
 
 void FragTool::setChildProcess(pid_t pid) {
@@ -99,19 +104,21 @@ void FragTool::fragmentHasChanged() {
     fragHasChanged = true;
 }
 
-void FragTool::initGL() {
+bool FragTool::initGL() {
     width = 800;
     height = 600;
 
     if(!glfwInit()) {
-        handleError("GLFW init failed", -1);
+        cerr << "GLFW init failed" << endl;
+        return false;
     }
 
     window = glfwCreateWindow(width, height, "fragtool", NULL, NULL);
 
     if(!window) {
         glfwTerminate();
-        handleError("GLFW create window failed", -1);
+        cerr << "GLFW create window failed" << endl;
+        return false;
     }
 
     glfwMakeContextCurrent(window);
@@ -121,11 +128,13 @@ void FragTool::initGL() {
 
     if(err != GLEW_OK) {
         cerr << glewGetErrorString(err) << endl;
-        handleError("GlEW init failed", -1);
+        return false;
     }
 
     glfwSetWindowSizeCallback(window, handleResize);
     glfwSetKeyCallback(window, handleKeypress);
+
+    return true;
 }
 
 void FragTool::renderingThread() {
@@ -134,7 +143,7 @@ void FragTool::renderingThread() {
     while(!glfwWindowShouldClose(window)) {
         glfwSwapBuffers(window);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
         if(fragHasChanged) {
             string fragSource;
 
@@ -145,18 +154,13 @@ void FragTool::renderingThread() {
             }
         }
 
-        render(); 
-        ScreenLog::Instance().render(true); 
+        render();
+        ScreenLog::Instance().render(true);
 
         glfwPollEvents();
     }
 
     glfwTerminate();
-}
-
-void FragTool::handleError(const string& message, int exitStatus) {
-    cerr << "ABORT: "<< message << endl;
-    exit(exitStatus);
 }
 
 void FragTool::watchingThread() {

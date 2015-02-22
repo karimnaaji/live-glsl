@@ -92,13 +92,13 @@ GLuint Shader::compileShader(const std::string& src, GLenum type) {
 }
 
 void Shader::detach(GLenum type) {
-	bool vert = (GL_VERTEX_SHADER & type) == GL_VERTEX_SHADER;
-	bool frag = (GL_FRAGMENT_SHADER & type) == GL_FRAGMENT_SHADER;
-	
-	if(vert) {
-		glDeleteShader(vertexShader);
-		glDetachShader(vertexShader, GL_VERTEX_SHADER);
-	}
+    bool vert = (GL_VERTEX_SHADER & type) == GL_VERTEX_SHADER;
+    bool frag = (GL_FRAGMENT_SHADER & type) == GL_FRAGMENT_SHADER;
+
+    if(vert) {
+        glDeleteShader(vertexShader);
+        glDetachShader(vertexShader, GL_VERTEX_SHADER);
+    }
 
     if(frag) {
         glDeleteShader(fragmentShader);
@@ -112,15 +112,15 @@ GLint Shader::getUniformLocation(const std::string& uniformName) const {
 }
 
 void Shader::sendUniform(const std::string& name, float x) {
-	if(isInUse()) {
-		glUniform1f(getUniformLocation(name), x);
-	}
+    if(isInUse()) {
+        glUniform1f(getUniformLocation(name), x);
+    }
 }
 
 void Shader::sendUniform(const std::string& name, float x, float y) {
-	if(isInUse()) {
-		glUniform2f(getUniformLocation(name), x, y);
-	}
+    if(isInUse()) {
+        glUniform2f(getUniformLocation(name), x, y);
+    }
 }
 
 void Shader::sendUniform(const std::string& name, int size, float* array) {

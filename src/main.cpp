@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
     // shared memory block
     fragtool = (FragTool *) shmat(shmId, NULL, 0);
 
+    // both will do
     fragtool->setFragShaderPath(fragShaderPath);
     fragtool->setChildProcess(child);
     fragtool->setParentProcess(parent);
@@ -60,7 +61,7 @@ int main(int argc, char **argv) {
             shmctl(shmId, IPC_RMID, NULL);
             exit(-1);
         }
-            
+
         case 0: {
             fragtool->watchingThread();
             break;
@@ -71,16 +72,15 @@ int main(int argc, char **argv) {
                 fragtool->loadSoundSource(std::string(argv[2]));
             }
 
-            fragtool->init();
-
-            redefineSignal(SIGALRM, fileHasChanged);
-
-            fragtool->renderingThread();
+            if(fragtool->init()) {
+                redefineSignal(SIGALRM, fileHasChanged);
+                fragtool->renderingThread();
+            }
 
             kill(child, SIGKILL);
         }
     }
-    
+
     fragtool->destroy();
 
     // remove shared memory

@@ -11,6 +11,7 @@ set(SOURCES
     src/filewatcher.cpp
     src/fragtool.cpp
     src/shader.cpp
+    src/utils.cpp
     src/log.cpp
 )
 
@@ -39,6 +40,6 @@ file(COPY
     ${PROJECT_SOURCE_DIR}/lib/precompiled/libfmodex.dylib
     DESTINATION ${PROJECT_SOURCE_DIR}/build)
 
-target_link_libraries(${EXECUTABLE_NAME} 
-    glfw ${GLFW_LIBRARIES} ${GLEW_LIBRARY} 
+target_link_libraries(${EXECUTABLE_NAME}
+    glfw ${GLFW_LIBRARIES} ${GLEW_LIBRARY}
     ${PROJECT_SOURCE_DIR}/lib/precompiled/libfmodex.dylib)
