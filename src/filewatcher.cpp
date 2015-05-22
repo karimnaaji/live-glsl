@@ -1,29 +1,21 @@
 #include "filewatcher.h"
 
-FileWatcher::FileWatcher(const string& absolutePath, void (*cb)(void))
+FileWatcher::FileWatcher(const std::string& absolutePath, void (*cb)(void))
 : file(absolutePath), callback(cb) {}
 
-void FileWatcher::startWatching() {
-    ctxDesc = std::unique_ptr<ctx_desc>(new ctx_desc);
-    ctxDesc->len = 0;
-    ctxDesc->size = 2;
-    ctxDesc->paths = std::unique_ptr<char*[]>(new char*[ctxDesc->size]);
-    ctxDesc->watcher = this;
+void FileWatcher::startWatching(bool* quit) {
+    static int s_lastChange;
+    struct stat st;
+    stat(file.c_str(), &st);
 
-    CFMutableArrayRef path = CFArrayCreateMutable(NULL, 1, NULL);
-    CFStringRef pathStr = CFStringCreateWithCString(NULL, file.c_str(), kCFStringEncodingUTF8);
-    CFArrayAppendValue(path, pathStr);
-
-    FSEventStreamContext ctx = { 0, ctxDesc.get(), NULL, NULL, NULL };
-    FSEventStreamRef stream;
-    FSEventStreamCreateFlags flags = kFSEventStreamCreateFlagFileEvents;
-
-    stream = FSEventStreamCreate(NULL, &eventCallback, &ctx, path, kFSEventStreamEventIdSinceNow, 0, flags);
-
-    FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-    FSEventStreamStart(stream);
-
-    CFRunLoopRun();
+    while(!*quit) {
+        stat(file.c_str(), &st);
+        if(st.st_mtime != s_lastChange) {
+            processEvent();
+            s_lastChange = st.st_mtime;
+        }
+        usleep(1000);
+    }
 }
 
 void FileWatcher::processEvent() const {
@@ -32,17 +24,7 @@ void FileWatcher::processEvent() const {
     }
 }
 
-string FileWatcher::watchedFile() const {
+std::string FileWatcher::watchedFile() const {
     return file;
 }
 
-void eventCallback(ConstFSEventStreamRef streamRef,
-    void *ctx,
-    size_t count,
-    void *paths,
-    const FSEventStreamEventFlags flags[],
-    const FSEventStreamEventId ids[]) 
-{
-    ctx_desc *ctxDesc = (ctx_desc *)ctx;
-    ctxDesc->watcher->processEvent();
-}

@@ -43,3 +43,4 @@ file(COPY
 target_link_libraries(${EXECUTABLE_NAME}
     glfw ${GLFW_LIBRARIES} ${GLEW_LIBRARY}
     ${PROJECT_SOURCE_DIR}/lib/precompiled/libfmodex.dylib)
+

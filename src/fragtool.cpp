@@ -1,20 +1,20 @@
 #include "fragtool.h"
 
-bool FragTool::init() {
-    bool init = initGL();
-    shader.log = &(ScreenLog::Instance());
-    fragHasChanged = false;
-    return init && initShader();
-}
+FragTool::FragTool() {}
 
-void FragTool::destroy() {
+FragTool::FragTool(const std::string& fragPath, std::shared_ptr<std::mutex> mtx)
+: fragHasChanged(false), fragShaderPath(fragPath), mutex(mtx) {}
+
+FragTool::~FragTool() {
     if(hasSound) {
         channel->stop();
         sound->release();
         system->release();
     }
 
-    glDeleteBuffers(1, &vbo);
+    if(vbo != 0) {
+        glDeleteBuffers(1, &vbo);
+    }
 }
 
 bool FragTool::initShader() {
@@ -30,7 +30,6 @@ bool FragTool::initShader() {
     }
 
     float vertices[12];
-
     quad(vertices);
 
     glGenBuffers(1, &vbo);
@@ -41,19 +40,9 @@ bool FragTool::initShader() {
     glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(posAttrib);
 
+    shader.log = &(ScreenLog::Instance());
+
     return true;
-}
-
-void FragTool::setChildProcess(pid_t pid) {
-    childProcess = pid;
-}
-
-void FragTool::setParentProcess(pid_t pid) {
-    parentProcess = pid;
-}
-
-void FragTool::setFragShaderPath(const string& shaderPath) {
-    fragShaderPath = shaderPath;
 }
 
 void FragTool::loadSoundSource(const string& path) {
@@ -75,7 +64,7 @@ void FragTool::loadSoundSource(const string& path) {
     channel->setLoopCount(-1);
 }
 
-void FragTool::render() {
+void FragTool::renderFrame() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shader.use();
@@ -98,10 +87,6 @@ void FragTool::render() {
     glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(posAttrib);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-}
-
-void FragTool::fragmentHasChanged() {
-    fragHasChanged = true;
 }
 
 bool FragTool::initGL() {
@@ -134,42 +119,32 @@ bool FragTool::initGL() {
     glfwSetWindowSizeCallback(window, handleResize);
     glfwSetKeyCallback(window, handleKeypress);
 
-    return true;
+    glClearColor(0.21, 0.39, 0.74, 1.0);
+
+    return initShader();
 }
 
-void FragTool::renderingThread() {
-    glClearColor(56.0/255, 101.0/255, 190.0/255, 1);
-
+void FragTool::renderLoop() {
     while(!glfwWindowShouldClose(window)) {
-        glfwSwapBuffers(window);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        string fragSource;
 
-        if(fragHasChanged) {
-            string fragSource;
+        if(fragHasChanged && loadFromPath(fragShaderPath, &fragSource)) {
+            shader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
+            shader.build(fragSource, vertexShader);
 
-            if(loadFromPath(fragShaderPath, &fragSource)) {
-                shader.detach(GL_FRAGMENT_SHADER | GL_VERTEX_SHADER);
-                shader.build(fragSource, vertexShader);
+            {
+                std::lock_guard<std::mutex> lock(*mutex);
                 fragHasChanged = false;
             }
         }
 
-        render();
+        renderFrame();
         ScreenLog::Instance().render(true);
 
         glfwPollEvents();
+        glfwSwapBuffers(window);
     }
 
     glfwTerminate();
 }
 
-void FragTool::watchingThread() {
-    char s[1024];
-    realpath(fragShaderPath.c_str(), s);
-
-    string absolutePath(s);
-
-    std::cout << "Watching fragment file source: " << s << std::endl;
-    watcher = FileWatcher(absolutePath, &watcherCallback);
-    watcher.startWatching();
-}

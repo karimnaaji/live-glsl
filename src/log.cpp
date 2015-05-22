@@ -20,7 +20,7 @@ ScreenLog::ScreenLog() {
         fs = NULL;
     } else {
         effect = FONS_EFFECT_NONE;
-        
+
         fonsSetSize(fs, FONT_SIZE);
         fonsSetFont(fs, font);
     }
@@ -49,7 +49,7 @@ void ScreenLog::render(bool clear) {
 
             for(auto str : strSplit(log, '\n')) {
                 glfonsBufferText(fs, str.c_str(), &id, effect);
-                textDisplay.push_back(id);   
+                textDisplay.push_back(id);
             }
 
             bufferedLog = true;
@@ -64,7 +64,7 @@ void ScreenLog::render(bool clear) {
         glDisable(GL_TEXTURE_2D);
         glDisable(GL_DEPTH_TEST);
 
-        float yOffset = FONT_SIZE + FONT_SIZE / 4.0; 
+        float yOffset = FONT_SIZE + FONT_SIZE / 4.0;
         float yPad = yOffset;
 
         glfonsPushMatrix(fs);
@@ -72,8 +72,8 @@ void ScreenLog::render(bool clear) {
 
         for(auto id : textDisplay) {
             glfonsTranslate(fs, 0.0, yPad);
-            glfonsDrawText(fs, id); 
-        } 
+            glfonsDrawText(fs, id);
+        }
 
         glfonsPopMatrix(fs);
 
@@ -108,3 +108,4 @@ ScreenLog& ScreenLog::operator<< (std::string* s) {
     log += *s;
     return *this;
 }
+

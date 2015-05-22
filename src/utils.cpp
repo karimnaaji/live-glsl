@@ -1,27 +1,5 @@
 #include "utils.h"
 
-void redefineSignal(int sig, void (*handler)(int)) {
-    struct sigaction action;
-    sigset_t set;
-
-    sigemptyset(&set);
-    action.sa_handler = handler;
-    action.sa_flags = 0;
-    action.sa_mask = set;
-
-    if (sigaction(sig, &action, NULL) != 0) {
-        std::cerr << "Not able to redefine signal" << std::endl;
-    }
-}
-
-key_t createKey(const char* name) {
-    key_t key = ftok(name, 0);
-    if(key == -1) {
-    	std::cerr << "Not able to create key" << std::endl;
-    }
-    return key;
-}
-
 char** strSplit(char* str, const char delimiter) {
     char** result = 0;
     size_t count = 0;

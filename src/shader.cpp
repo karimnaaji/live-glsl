@@ -1,11 +1,11 @@
 #include "shader.h"
 
-Shader::Shader() {
-
-}
+Shader::Shader() {}
 
 Shader::~Shader() {
-    glDeleteProgram(program);
+    if(program != 0) {
+        glDeleteProgram(program);
+    }
 }
 
 bool Shader::build(const std::string& fragmentSrc, const std::string& vertexSrc) {
@@ -45,10 +45,11 @@ GLuint Shader::link() {
     glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
 
     if(!linkStatus) {
+        std::cerr << "Error linking program" << std::endl;
         printInfoLog(program);
         glDeleteProgram(program);
         return 0;
-    } else {
+    } else if(log) {
         log->clear();
     }
 
@@ -84,7 +85,7 @@ GLuint Shader::compileShader(const std::string& src, GLenum type) {
         printInfoLog(shader);
         glDeleteShader(shader);
         return 0;
-    } else {
+    } else if(log) {
         log->clear();
     }
 
@@ -135,13 +136,12 @@ void Shader::printInfoLog(GLuint shader) {
 
     if(length > 1) {
         char* info = new char[length];
-
         glGetShaderInfoLog(shader, length, NULL, info);
 
         std::cerr << info << std::endl;
-
-        *log << info;
-
+        if(log) {
+            *log << info;
+        }
         delete[] info;
     }
 }

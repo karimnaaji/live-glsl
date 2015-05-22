@@ -1,38 +1,45 @@
 #include <iostream>
+#include <thread>
+#include <mutex>
 
 #include "fragtool.h"
+#include "filewatcher.h"
 #include "utils.h"
 
-static FragTool* fragtool;
-
-/*
- * Parent event signal handling
- */
-void fileHasChanged(int sig) {
-    if(sig == SIGALRM) {
-        fragtool->fragmentHasChanged();
-    }
-}
-
-/*
- * Event callback when file has changed
- */
-void watcherCallback() {
-    kill(fragtool->parentProcess, SIGALRM);
-}
+static FragTool fragtool;
+static FileWatcher watcher;
+static bool quit = false;
+static std::shared_ptr<std::mutex> mtx(new std::mutex());
 
 void handleKeypress(GLFWwindow* window, int key, int scancode, int action, int mods) {
     switch (key) {
         case 256: // ESC
-            glfwSetWindowShouldClose(fragtool->window, GL_TRUE);
+            glfwSetWindowShouldClose(fragtool.window, GL_TRUE);
     }
 }
 
 void handleResize(GLFWwindow* window, int w, int h) {
-    fragtool->width = w;
-    fragtool->height = h;
+    fragtool.width = w;
+    fragtool.height = h;
 
     glViewport(0, 0, w, h);
+}
+
+void watcherCallback() {
+    std::lock_guard<std::mutex> lock(*mtx);
+    fragtool.fragHasChanged = true;
+}
+
+void watchingThread(std::string fragShaderPath) {
+    char s[1024];
+    realpath(fragShaderPath.c_str(), s);
+
+    string absolutePath(s);
+
+    std::cout << "Watching fragment file source: " << s << std::endl;
+    watcher = FileWatcher(absolutePath, &watcherCallback);
+
+    watcher.startWatching(&quit);
 }
 
 int main(int argc, char **argv) {
@@ -41,50 +48,24 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    int shmId = shmget(IPC_PRIVATE, sizeof(FragTool), 0666);
-
     std::string fragShaderPath = std::string(argv[1]);
 
-    pid_t parent = getpid();
-    pid_t child = fork();
+    fragtool = FragTool(fragShaderPath, mtx);
+    watcher = FileWatcher(fragShaderPath, &watcherCallback);
 
-    // shared memory block
-    fragtool = (FragTool *) shmat(shmId, NULL, 0);
-
-    // both will do
-    fragtool->setFragShaderPath(fragShaderPath);
-    fragtool->setChildProcess(child);
-    fragtool->setParentProcess(parent);
-
-    switch(child) {
-        case -1: {
-            shmctl(shmId, IPC_RMID, NULL);
-            exit(-1);
-        }
-
-        case 0: {
-            fragtool->watchingThread();
-            break;
-        }
-
-        default: {
-            if(argc > 2) {
-                fragtool->loadSoundSource(std::string(argv[2]));
-            }
-
-            if(fragtool->init()) {
-                redefineSignal(SIGALRM, fileHasChanged);
-                fragtool->renderingThread();
-            }
-
-            kill(child, SIGKILL);
-        }
+    if(argc > 2) {
+        fragtool.loadSoundSource(std::string(argv[2]));
     }
 
-    fragtool->destroy();
+    std::thread t(watchingThread, fragShaderPath);
 
-    // remove shared memory
-    shmctl(shmId, IPC_RMID, NULL);
+    if(fragtool.initGL()) {
+        fragtool.renderLoop();
+    }
+
+    quit = true;
+
+    t.join();
 
     return 0;
 }
