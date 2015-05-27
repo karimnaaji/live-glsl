@@ -1,5 +1,5 @@
-fragtool
-========
+Live-GLSL
+=========
 
 ![00](images/fragtool.gif)
 
