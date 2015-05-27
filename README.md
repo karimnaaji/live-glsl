@@ -6,21 +6,24 @@ fragtool
 build and run
 -------------
 
-cloning with submodules:
+this project uses _CMake_, you can download it [here](http://www.cmake.org/download/) or use an installation package manager like [homebrew](http://brew.sh/).
 
 ```bash
-git clone git@github.com:karimnaaji/fragtool.git
-git submodule init && git submodule update
+brew install cmake
 ```
 
+clone the project with submodules:
+
 ```bash
+git clone git@github.com:karimnaaji/live-glsl.git
+git submodule init && git submodule update
 mkdir build && cd build
 cmake ..
 make
 ```
 
 ```bash
-./fragtool.out fragment_shader_to_watch [sound_path]
+./live-glsl.out fragment_shader_to_watch [sound_path]
 ```
 
 example
