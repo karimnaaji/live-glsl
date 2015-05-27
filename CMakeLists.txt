@@ -6,14 +6,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/build/modules)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++0x -stdlib=libc++ -g -O0")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/include")
 
-set(SOURCES
-    src/main.cpp
-    src/filewatcher.cpp
-    src/fragtool.cpp
-    src/shader.cpp
-    src/utils.cpp
-    src/log.cpp
-)
+file(GLOB SOURCES src/*.cpp)
 
 include_directories(${CMAKE_SOURCE_DIR}/lib/include/fmod)
 include_directories(${CMAKE_SOURCE_DIR}/lib/include/fontstash)
