@@ -108,14 +108,6 @@ bool FragTool::initGL() {
 
     glfwMakeContextCurrent(window);
 
-    glewExperimental = GL_TRUE;
-    GLenum err = glewInit();
-
-    if(err != GLEW_OK) {
-        cerr << glewGetErrorString(err) << endl;
-        return false;
-    }
-
     glfwSetWindowSizeCallback(window, handleResize);
     glfwSetKeyCallback(window, handleKeypress);
 

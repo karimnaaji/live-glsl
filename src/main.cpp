@@ -4,7 +4,6 @@
 
 #include "fragtool.h"
 #include "filewatcher.h"
-#include "utils.h"
 
 static FragTool fragtool;
 static FileWatcher watcher;

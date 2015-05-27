@@ -1,17 +1,12 @@
 #pragma once
 
 #include <iostream>
-#include <fstream>
-#include <vector>
 #include <memory>
 #include <mutex>
 
-#include "graphics.h"
-#include "default_vert.h"
-#include "utils.h"
+#include "GLFW/glfw3.h"
 #include "shader.h"
 #include "fmod.hpp"
-#include "log.h"
 
 using namespace std;
 

@@ -1,12 +1,10 @@
 #pragma once
 
-#include <iostream>
 #include <string>
 #include <vector>
-#include <memory>
 
+#include "GLFW/glfw3.h"
 #include "utils.h"
-#include "graphics.h"
 #include "glfontstash.h"
 
 #define ARIAL "/Library/Fonts/Arial.ttf"
