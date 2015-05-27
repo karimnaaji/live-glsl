@@ -2,10 +2,10 @@
 #include <thread>
 #include <mutex>
 
-#include "fragtool.h"
+#include "app.h"
 #include "filewatcher.h"
 
-static FragTool fragtool;
+static App app;
 static FileWatcher watcher;
 static bool quit = false;
 static std::shared_ptr<std::mutex> mtx(new std::mutex());
@@ -13,20 +13,20 @@ static std::shared_ptr<std::mutex> mtx(new std::mutex());
 void handleKeypress(GLFWwindow* window, int key, int scancode, int action, int mods) {
     switch (key) {
         case 256: // ESC
-            glfwSetWindowShouldClose(fragtool.window, GL_TRUE);
+            glfwSetWindowShouldClose(app.window, GL_TRUE);
     }
 }
 
 void handleResize(GLFWwindow* window, int w, int h) {
-    fragtool.width = w;
-    fragtool.height = h;
+    app.width = w;
+    app.height = h;
 
     glViewport(0, 0, w, h);
 }
 
 void watcherCallback() {
     std::lock_guard<std::mutex> lock(*mtx);
-    fragtool.fragHasChanged = true;
+    app.fragHasChanged = true;
 }
 
 void watchingThread(std::string fragShaderPath) {
@@ -48,17 +48,17 @@ int main(int argc, char **argv) {
     }
 
     std::string fragShaderPath = std::string(argv[1]);
-    fragtool = FragTool(fragShaderPath, mtx);
+    app = App(fragShaderPath, mtx);
 
     if(argc > 2) {
-        fragtool.loadSoundSource(std::string(argv[2]));
+        app.loadSoundSource(std::string(argv[2]));
     }
 
-    if(fragtool.initGL()) {
+    if(app.initGL()) {
         watcher = FileWatcher(fragShaderPath, &watcherCallback);
 
         std::thread t(watchingThread, fragShaderPath);
-        fragtool.renderLoop();
+        app.renderLoop();
         quit = true;
 
         t.join();
