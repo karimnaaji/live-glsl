@@ -49,23 +49,21 @@ int main(int argc, char **argv) {
     }
 
     std::string fragShaderPath = std::string(argv[1]);
-
     fragtool = FragTool(fragShaderPath, mtx);
-    watcher = FileWatcher(fragShaderPath, &watcherCallback);
 
     if(argc > 2) {
         fragtool.loadSoundSource(std::string(argv[2]));
     }
 
-    std::thread t(watchingThread, fragShaderPath);
-
     if(fragtool.initGL()) {
+        watcher = FileWatcher(fragShaderPath, &watcherCallback);
+
+        std::thread t(watchingThread, fragShaderPath);
         fragtool.renderLoop();
+        quit = true;
+
+        t.join();
     }
-
-    quit = true;
-
-    t.join();
 
     return 0;
 }
