@@ -34,7 +34,7 @@ float intersect(in vec3 ro, in vec3 rd, out float t) {
     if(tsph > 0.0) {
         t = tsph;
         return 1.0;
-    } 
+    }
 
     if(tpla > 0.0 && tpla < t) {
         t = tpla;
@@ -57,7 +57,7 @@ void main(void) {
     if (id == 1.0) { // sphere
         vec3 n = nSphere(p, sph1);
         float d = clamp(dot(n, l), 0.0, 1.0);
-        c = vec3(0.3) + vec3(0.5) * d;
+        c = vec3(0.8) + vec3(0.5) * d;
     } else if (id == 2.0) { // plane
         vec3 p = ro + t * rd;
         c = vec3(smoothstep(0.0, sph1.w, length(p.xz - sph1.xz)) * 0.7);

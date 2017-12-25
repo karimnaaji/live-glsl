@@ -6,7 +6,6 @@
 
 #include "GLFW/glfw3.h"
 #include "shader.h"
-#include "fmod.hpp"
 
 using namespace std;
 
@@ -19,7 +18,6 @@ public:
 
     bool initGL();
     void renderLoop();
-    void loadSoundSource(const string& sound);
 
     friend void handleResize(GLFWwindow* window, int w, int h);
     friend void handleKeypress(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -29,12 +27,6 @@ public:
 private:
     void renderFrame();
     bool initShader();
-
-    FMOD::Channel *channel;
-    FMOD::Sound *sound;
-    FMOD::System *system;
-    std::string soundPath;
-    bool hasSound;
 
     GLFWwindow* window;
     Shader shader;

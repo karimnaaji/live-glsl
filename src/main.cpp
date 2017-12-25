@@ -50,10 +50,6 @@ int main(int argc, char **argv) {
     std::string fragShaderPath = std::string(argv[1]);
     app = App(fragShaderPath, mtx);
 
-    if(argc > 2) {
-        app.loadSoundSource(std::string(argv[2]));
-    }
-
     if(app.initGL()) {
         watcher = FileWatcher(fragShaderPath, &watcherCallback);
 
