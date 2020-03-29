@@ -239,7 +239,6 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
             LiveGLSL* live_glsl = static_cast<LiveGLSL*>(glfwGetWindowUserPointer(window));
             live_glsl->WindowWidth = width;
             live_glsl->WindowHeight = height;
-            glViewport(0, 0, width, height);
         });
         glfwSetFramebufferSizeCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* window, int fb_width, int fb_height) {
             LiveGLSL* live_glsl = static_cast<LiveGLSL*>(glfwGetWindowUserPointer(window));
@@ -316,6 +315,7 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
             glBindBuffer(GL_ARRAY_BUFFER, live_glsl.VertexBufferId);
             float width = live_glsl.WindowWidth * live_glsl.PixelDensity;
             float height = live_glsl.WindowHeight * live_glsl.PixelDensity;
+            glViewport(0, 0, width, height);
             glUniform2f(glGetUniformLocation(ShaderProgramInstance.Handle, "resolution"), width, height);
             glUniform1f(glGetUniformLocation(ShaderProgramInstance.Handle, "time"), glfwGetTime());
             glVertexAttribPointer(live_glsl.PositionVertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0);
