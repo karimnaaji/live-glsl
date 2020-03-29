@@ -12,18 +12,15 @@ this project uses _CMake_, you can download it [here](http://www.cmake.org/downl
 brew install cmake
 ```
 
-clone the project with submodules:
+To build:
 
 ```bash
-git clone git@github.com:karimnaaji/live-glsl.git
-git submodule init && git submodule update
-mkdir build && cd build
-cmake ..
-make
+cmake . -Bbuild
+cmake --build build
 ```
 
 ```bash
-./live-glsl.out fragment_shader_to_watch [sound_path]
+./live-glsl.out fragment_shader_to_watch
 ```
 
 example
@@ -37,5 +34,3 @@ fragment shader inputs
 Possible use of these uniforms :
  + time : float
  + resolution : vec2
- + uniform float spectrum[256]; // spectrum of sound
- + uniform float wave[256];     // wave of sound
