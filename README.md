@@ -23,7 +23,7 @@ make
 ```
 
 ```bash
-./live-glsl.out fragment_shader_to_watch [sound_path]
+./live-glsl.out fragment_shader_to_watch
 ```
 
 example
