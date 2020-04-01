@@ -37,5 +37,3 @@ fragment shader inputs
 Possible use of these uniforms :
  + time : float
  + resolution : vec2
- + uniform float spectrum[256]; // spectrum of sound
- + uniform float wave[256];     // wave of sound
