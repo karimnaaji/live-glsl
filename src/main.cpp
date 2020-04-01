@@ -37,6 +37,7 @@ struct LiveGLSL {
     GLint PositionVertexAttribute;
     std::string ShaderPath;
     bool ShaderCompiled;
+    bool IsContinuousRendering;
     int WindowWidth;
     int WindowHeight;
     float PixelDensity;
@@ -82,7 +83,7 @@ bool ReadFile(const std::string& path, std::string& out) {
     return false;
 }
 
-ScreenLog ScreenLogCreate() {
+ScreenLog ScreenLogCreate(float pixel_density) {
     ScreenLog screen_log;
     screen_log.LogBuffered = false;
     screen_log.FontContext = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
@@ -91,7 +92,7 @@ ScreenLog ScreenLogCreate() {
         font = fonsAddFont(screen_log.FontContext, "sans", "/Library/Fonts/Arial Unicode.ttf"); 
     }
     assert(font != FONS_INVALID &&  "Could not load font Arial");
-    fonsSetSize(screen_log.FontContext, FONT_SIZE);
+    fonsSetSize(screen_log.FontContext, FONT_SIZE * pixel_density);
     fonsSetFont(screen_log.FontContext, font);
     glfonsUpdateViewport(screen_log.FontContext);
     return screen_log;
@@ -104,8 +105,8 @@ void ScreenLogDestroy(ScreenLog& screen_log) {
     glfonsDelete(screen_log.FontContext);
 }
 
-void ScreenLogRender(ScreenLog& screen_log) {
-    if (screen_log.Log.compare("") == 0) {
+void ScreenLogRender(ScreenLog& screen_log, float pixel_density) {
+    if (screen_log.Log.empty()) {
         if (screen_log.LogBuffered) {
             for(auto id : screen_log.TextHandles) {
                 glfonsUnbufferText(screen_log.FontContext, id);
@@ -125,23 +126,47 @@ void ScreenLogRender(ScreenLog& screen_log) {
         }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glfonsUpdateViewport(screen_log.FontContext);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDisable(GL_TEXTURE_2D);
         glDisable(GL_DEPTH_TEST);
 
-        float y_offset = FONT_SIZE + FONT_SIZE / 4.0;
+        float y_offset = FONT_SIZE * pixel_density + FONT_SIZE * pixel_density * 0.25f;
         glfonsPushMatrix(screen_log.FontContext);
-        glfonsTranslate(screen_log.FontContext, FONT_SIZE / 2.0, 0.0);
+        glfonsTranslate(screen_log.FontContext, FONT_SIZE * pixel_density * 0.5f, 0.0f);
 
         for (auto id : screen_log.TextHandles) {
-            glfonsTranslate(screen_log.FontContext, 0.0, y_offset);
+            glfonsTranslate(screen_log.FontContext, 0.0f, y_offset);
             glfonsDrawText(screen_log.FontContext, id);
         }
 
         glfonsPopMatrix(screen_log.FontContext);
         glDisable(GL_BLEND);
     }
+}
+
+void ScreenLogRenderFrameStatus(ScreenLog& screen_log, bool sixty_fps, float pixel_density) {
+    char buffer[32];
+    sprintf(buffer, "■");
+    static fsuint id = 0;
+    if (id != 0) { glfonsUnbufferText(screen_log.FontContext, id); }
+    glfonsBufferText(screen_log.FontContext, buffer, &id, FONS_EFFECT_NONE);
+    glfonsUpdateViewport(screen_log.FontContext);
+    if (sixty_fps)
+        glfonsSetColor(screen_log.FontContext, 0.21, 1.0, 0.74, 1.0);
+    else
+        glfonsSetColor(screen_log.FontContext, 1.0, 0.0, 0.0, 1.0);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_DEPTH_TEST);
+    glfonsPushMatrix(screen_log.FontContext);
+    glfonsTranslate(screen_log.FontContext, FONT_SIZE * pixel_density * 0.5f, FONT_SIZE * pixel_density);
+    glfonsDrawText(screen_log.FontContext, id);
+    glfonsPopMatrix(screen_log.FontContext);
+    glDisable(GL_BLEND);
+    glfonsSetColor(screen_log.FontContext, 1.0, 1.0, 1.0, 1.0);
 }
 
 void ScreenLogClear(ScreenLog& screen_log) {
@@ -228,6 +253,7 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
     live_glsl->ShaderPath = shader_path;
     live_glsl->WindowWidth = 800;
     live_glsl->WindowHeight = 600;
+    live_glsl->IsContinuousRendering = false;
 
     // Init GLFW Window
     {
@@ -256,7 +282,7 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
         live_glsl->PixelDensity = (float)fb_width / (float)live_glsl->WindowWidth;
     }
 
-    ScreenLogInstance = ScreenLogCreate();
+    ScreenLogInstance = ScreenLogCreate(live_glsl->PixelDensity);
 
     // Compile shader
     {
@@ -264,6 +290,7 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
         if (!ReadFile(shader_path, shader_source)) {
             ScreenLogBuffer(ScreenLogInstance, std::string("Unable read file at path " + shader_path).c_str());
         }
+
         live_glsl->ShaderCompiled = ShaderProgramBuild(ShaderProgramInstance, shader_source, DefaultVertexShader);
     }
 
@@ -298,17 +325,31 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
 }
 
 void LiveGLSLRender(LiveGLSL& live_glsl) {
-    while(!glfwWindowShouldClose(live_glsl.GLFWWindowHandle)) {
+    double previous_time = glfwGetTime();
+    uint32_t frame_count = 0;
+    bool sixty_fps = false;
+
+    while (!glfwWindowShouldClose(live_glsl.GLFWWindowHandle)) {
         std::string shader_source;
         if (ShaderFileChanged && ReadFile(live_glsl.ShaderPath, shader_source)) {
             ShaderProgramDetach(ShaderProgramInstance);
             live_glsl.ShaderCompiled = ShaderProgramBuild(ShaderProgramInstance, shader_source, DefaultVertexShader);
             ShaderFileChanged.store(false);
+            glfwPostEmptyEvent();
         }
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        double current_time = glfwGetTime();
+        ++frame_count;
+        if (current_time - previous_time >= 1.0)
+        {
+            sixty_fps = frame_count >= 60;
+            frame_count = 0;
+            previous_time = current_time;
+        }
 
         if (live_glsl.ShaderCompiled) {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
             assert(ShaderProgramInstance.Handle != 0);
             glUseProgram(ShaderProgramInstance.Handle);
 
@@ -320,13 +361,22 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
             glUniform1f(glGetUniformLocation(ShaderProgramInstance.Handle, "time"), glfwGetTime());
             glVertexAttribPointer(live_glsl.PositionVertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0);
             glEnableVertexAttribArray(live_glsl.PositionVertexAttribute);
+
             glDrawArrays(GL_TRIANGLES, 0, 6);
+
+            live_glsl.IsContinuousRendering = glGetUniformLocation(ShaderProgramInstance.Handle, "time") != -1;
+
+            if (live_glsl.IsContinuousRendering)
+                ScreenLogRenderFrameStatus(ScreenLogInstance, sixty_fps, live_glsl.PixelDensity);
         }
 
-        ScreenLogRender(ScreenLogInstance);
+        ScreenLogRender(ScreenLogInstance, live_glsl.PixelDensity);
 
-        glfwPollEvents();
         glfwSwapBuffers(live_glsl.GLFWWindowHandle);
+        if (live_glsl.IsContinuousRendering)
+            glfwPollEvents();
+        else
+            glfwWaitEvents();
     }
 
     glfwTerminate();
@@ -343,8 +393,9 @@ void FileWatcherThread(std::string shader_source_path) {
         if(st.st_mtime != last_changed) {
             ShaderFileChanged.store(true);
             last_changed = st.st_mtime;
+            glfwPostEmptyEvent();
         }
-        usleep(1000);
+        usleep(16000);
     }
 }
 
