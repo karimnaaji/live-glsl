@@ -12,7 +12,7 @@ uniform float time;
 #define SAMPLE_STEPS            10
 #define DENSITY_STEPS           10
 #define SUN_INTENSITY           25.0
-#define MOON_INTENSITY          1.0
+#define MOON_INTENSITY          1.5
 #define DENSITY_SCALAR_M        0.1
 #define DENSITY_SCALAR_R        0.8
 
@@ -79,7 +79,7 @@ vec3 atmosphere(vec3 ray_dir, vec3 ray_origin, vec3 sun_position, float sun_inte
         scatter_r += density.x * extinction;
         scatter_m += density.y * extinction;
     }
-    
+
     // The mie and rayleigh phase functions describe how much light
     // is scattered towards the eye when colliding with particles
     float cos_angle = dot(ray_dir, light_dir);
@@ -95,7 +95,7 @@ vec3 atmosphere(vec3 ray_dir, vec3 ray_origin, vec3 sun_position, float sun_inte
 
     const float sun_angular_diameter = 0.99995;
     float sundisk = smoothstep(sun_angular_diameter, sun_angular_diameter + 0.00002, cos_angle);
-    
+
     out_color = mix(out_color, vec3(sundisk), 0.5);
 
     return out_color;
@@ -108,10 +108,8 @@ const float D = 0.20;
 const float E = 0.02;
 const float F = 0.30;
 
-const float whiteScale = 1.0748724675633854; // 1.0 / Uncharted2Tonemap(1000.0)
-
-vec3 Uncharted2Tonemap( vec3 x ) {
-   return ( ( x * ( A * x + C * B ) + D * E ) / ( x * ( A * x + B ) + D * F ) ) - E / F;
+vec3 uncharted2_tonemap( vec3 x ) {
+   return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
 }
 
 void main() {
@@ -121,8 +119,8 @@ void main() {
     position.x += 0.3;
 
     vec3 color = vec3(0.0);
-    //vec3 sun_position = vec3(0.0, -0.3 + 0.5*cos(time * 0.3), -1.0);
-    vec3 sun_position = vec3(0.0, 0.3, -1.0);
+    vec3 sun_position = vec3(0.0, -0.3 + 0.5*cos(time * 0.3), -1.0);
+    //vec3 sun_position = vec3(0.0, 0.3, -1.0);
     vec3 sun_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), sun_position, SUN_INTENSITY);
     vec3 moon_light = vec3(0.0);
     if (sun_position.y < 0.0) {
@@ -134,9 +132,8 @@ void main() {
 
     // Apply exposure.
     float luminance = 0.01;
-    float whiteScale = 1.0748724675633854;
-    vec3 tonemap = Uncharted2Tonemap((log2(2.0 / pow(luminance, 4.0))) * color);
-    color = tonemap * whiteScale;
+    float white_scale = 1.0748724675633854;
+    color = uncharted2_tonemap((log2(2.0 / pow(luminance, 4.0))) * color) * white_scale;
 
     gl_FragColor = vec4(color, 1.0);
 }
