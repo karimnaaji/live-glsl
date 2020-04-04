@@ -8,11 +8,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/include")
 
 file(GLOB SOURCES src/*.cpp)
 
-include_directories(${CMAKE_SOURCE_DIR}/lib/include/fontstash)
-
-add_subdirectory(${CMAKE_SOURCE_DIR}/lib/include/glm)
-include_directories(${CMAKE_SOURCE_DIR}/lib/include/glm)
-include_directories(${CMAKE_SOURCE_DIR}/lib/include/glm/gtc)
+include_directories(${CMAKE_SOURCE_DIR}/deps/fontstash)
+add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glm)
+include_directories(${CMAKE_SOURCE_DIR}/deps/glm)
+include_directories(${CMAKE_SOURCE_DIR}/deps/glm/gtc)
 
 find_package(GLEW REQUIRED)
 
