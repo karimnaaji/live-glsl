@@ -12,9 +12,9 @@ uniform float time;
 #define SAMPLE_STEPS            10
 #define DENSITY_STEPS           10
 #define SUN_INTENSITY           25.0
-#define MOON_INTENSITY          1.5
-#define DENSITY_SCALAR_M        0.1
-#define DENSITY_SCALAR_R        0.8
+#define MOON_INTENSITY          2.0
+#define DENSITY_SCALAR_M        0.3
+#define DENSITY_SCALAR_R        1.3
 
 float ray_scphere_exit(vec3 orig, vec3 dir, float radius) {
     float a = dot(dir, dir);
@@ -87,13 +87,13 @@ vec3 atmosphere(vec3 ray_dir, vec3 ray_origin, vec3 sun_position, float sun_inte
     float phase_m = phase_mie(cos_angle);
 
     // Calculate light color
-    float turbidity = 0.13;
+    float turbidity = 2.0;
     vec3 rayleigh_color_tint = vec3(1.0); //vec3(0.9, .8, .8);
     vec3 beta_m = BETA_M * turbidity;
     vec3 beta_r = BETA_R * rayleigh_color_tint;
     vec3 out_color = (scatter_r * phase_r * beta_r + scatter_m * phase_m * beta_m) * sun_intensity;
 
-    const float sun_angular_diameter = 0.99995;
+    const float sun_angular_diameter = 0.9998;
     float sundisk = smoothstep(sun_angular_diameter, sun_angular_diameter + 0.00002, cos_angle);
 
     out_color = mix(out_color, vec3(sundisk), 0.5);
@@ -108,32 +108,69 @@ const float D = 0.20;
 const float E = 0.02;
 const float F = 0.30;
 
-vec3 uncharted2_tonemap( vec3 x ) {
+vec3 uncharted2_tonemap(vec3 x) {
    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+}
+
+float rand(vec2 v) {
+    return 2.0* fract(4356.17 * sin(1e4 * dot(v, vec2(1.0, 171.3)))) - 1.0;
+}
+
+#define MOD3 vec3(443.8975,397.2973, 491.1871)
+float hash12(vec2 p)
+{
+    vec3 p3 = fract(vec3(p.xyx) * MOD3);
+    p3 += dot(p3, p3.yzx + 19.19);
+    return fract((p3.x + p3.y) * p3.z);
 }
 
 void main() {
     vec2 uv = gl_FragCoord.xy / resolution;
-    vec3 position = vec3(uv * 2.0 - 1.0, -1.0);
+    vec3 position = vec3(uv * 4.0 - 1.0, -1.0);
     position.y += 1.0;
     position.x += 0.3;
 
     vec3 color = vec3(0.0);
-    vec3 sun_position = vec3(0.0, -0.3 + 0.5*cos(time * 0.3), -1.0);
-    //vec3 sun_position = vec3(0.0, 0.3, -1.0);
+    //vec3 sun_position = vec3(0.0, -0.001 + cos(time * 0.1), -1.0);
+    vec3 sun_position = vec3(0.0, -0.9, -1.0);
     vec3 sun_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), sun_position, SUN_INTENSITY);
     vec3 moon_light = vec3(0.0);
     if (sun_position.y < 0.0) {
         moon_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), vec3(0.0, 1.0, 0.0), MOON_INTENSITY);
-        color = mix(sun_light, moon_light, -sun_position.y);
+        color = mix(sun_light, moon_light, -sun_position.y * 0.5 + 0.5);
+
+        // Stars
+        #define N 2.0
+        vec2 R = resolution.xy;
+        float z = 30.0;
+        vec2 U = (2.0 * gl_FragCoord.xy - R) / R.y * z;
+        vec2 Ur = U + 0.2 * rand(floor(U));
+
+        vec3 O = vec3(0.0);
+        for (float x = -1.0; x <= 1.0; x += 1.0 / N) {
+            for (float y = -1.0; y <= 1.0; y += 1.0 / N) {
+                vec2 Us = Ur + vec2(x, y) * z / R.y;
+                float r = length(fract(Us) - 0.5 + floor(Us) - floor(U));
+                O += 0.005 / (pow(r / z, 2.0) * z * z);
+            }
+        }
+
+        O = O * vec3(1.0) / pow(N + N + 1.0, 2.0);
+        O *= max(0.0001 * rand(floor(U)) * (0.5 * cos(time * rand(floor(U))) + 0.5), 0.0001);
+
+        color += (O.rgb * -sun_position.y);
     } else {
         color = sun_light;
     }
 
     // Apply exposure.
-    float luminance = 0.01;
+    float luminance = 5e-5;
     float white_scale = 1.0748724675633854;
     color = uncharted2_tonemap((log2(2.0 / pow(luminance, 4.0))) * color) * white_scale;
+
+    // Dither
+    vec3 rnd = vec3(hash12(uv + fract(time)));
+    color += rnd / 255.0;
 
     gl_FragColor = vec4(color, 1.0);
 }
