@@ -9,10 +9,13 @@
 #include <unistd.h>
 #include <cassert>
 
+#include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #define GLFONTSTASH_IMPLEMENTATION
 #include "glfontstash.h"
 #define FONT_SIZE 32
+
+#include "gui.h"
 
 struct ScreenLog {
     FONScontext* FontContext;
@@ -34,6 +37,7 @@ struct ShaderProgram {
 struct LiveGLSL {
     GLFWwindow* GLFWWindowHandle;
     GLuint VertexBufferId;
+    GLuint VaoId;
     GLint PositionVertexAttribute;
     std::string ShaderPath;
     bool ShaderCompiled;
@@ -50,9 +54,9 @@ struct LiveGLSL;
 static LiveGLSL* LiveGLSLInstance;
 static ShaderProgram ShaderProgramInstance;
 static const GLchar* DefaultVertexShader = R"END(
-attribute vec4 position;
+in vec2 position;
 void main() {
-    gl_Position = position;
+    gl_Position = vec4(position, 0.0, 1.0);
 }
 )END";
 
@@ -87,9 +91,9 @@ ScreenLog ScreenLogCreate(float pixel_density) {
     ScreenLog screen_log;
     screen_log.LogBuffered = false;
     screen_log.FontContext = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
-    int font = fonsAddFont(screen_log.FontContext, "sans", "/Library/Fonts/Arial.ttf");
+    int font = fonsAddFont(screen_log.FontContext, "sans", FONT_PATH1);
     if (font == FONS_INVALID) {
-        font = fonsAddFont(screen_log.FontContext, "sans", "/Library/Fonts/Arial Unicode.ttf"); 
+        font = fonsAddFont(screen_log.FontContext, "sans", FONT_PATH2); 
     }
     assert(font != FONS_INVALID &&  "Could not load font Arial");
     fonsSetSize(screen_log.FontContext, FONT_SIZE * pixel_density);
@@ -127,11 +131,6 @@ void ScreenLogRender(ScreenLog& screen_log, float pixel_density) {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfonsUpdateViewport(screen_log.FontContext);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable(GL_TEXTURE_2D);
-        glDisable(GL_DEPTH_TEST);
-
         float y_offset = FONT_SIZE * pixel_density + FONT_SIZE * pixel_density * 0.25f;
         glfonsPushMatrix(screen_log.FontContext);
         glfonsTranslate(screen_log.FontContext, FONT_SIZE * pixel_density * 0.5f, 0.0f);
@@ -142,7 +141,6 @@ void ScreenLogRender(ScreenLog& screen_log, float pixel_density) {
         }
 
         glfonsPopMatrix(screen_log.FontContext);
-        glDisable(GL_BLEND);
     }
 }
 
@@ -157,15 +155,10 @@ void ScreenLogRenderFrameStatus(ScreenLog& screen_log, bool sixty_fps, float pix
         glfonsSetColor(screen_log.FontContext, 0.21, 1.0, 0.74, 1.0);
     else
         glfonsSetColor(screen_log.FontContext, 1.0, 0.0, 0.0, 1.0);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_DEPTH_TEST);
     glfonsPushMatrix(screen_log.FontContext);
     glfonsTranslate(screen_log.FontContext, FONT_SIZE * pixel_density * 0.5f, FONT_SIZE * pixel_density);
     glfonsDrawText(screen_log.FontContext, id);
     glfonsPopMatrix(screen_log.FontContext);
-    glDisable(GL_BLEND);
     glfonsSetColor(screen_log.FontContext, 1.0, 1.0, 1.0, 1.0);
 }
 
@@ -191,7 +184,7 @@ void ShaderProgramDestroy(ShaderProgram& shader_program) {
         glDeleteShader(shader_program.FragmentShaderHandle);
 }
 
-GLuint CompileShader(const std::string& src, GLenum type) {
+GLuint CompileShader(const std::string src, GLenum type) {
     GLint compile_status;
     GLuint shader = glCreateShader(type);
     const GLchar* source = (const GLchar*) src.c_str();
@@ -205,7 +198,8 @@ GLuint CompileShader(const std::string& src, GLenum type) {
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char info[8096];
         glGetShaderInfoLog(shader, length, NULL, info);
-        std::cerr << info << std::endl;
+        fprintf(stderr, "%s\n", src.c_str());
+        fprintf(stderr, "%s\n", info);
         ScreenLogBuffer(ScreenLogInstance, info);
         glDeleteShader(shader);
         return 0;
@@ -217,8 +211,9 @@ GLuint CompileShader(const std::string& src, GLenum type) {
 }
 
 bool ShaderProgramBuild(ShaderProgram& shader_program, const std::string& fragment_source, const std::string& vertex_source) {
-    shader_program.VertexShaderHandle = CompileShader(vertex_source, GL_VERTEX_SHADER);
-    shader_program.FragmentShaderHandle = CompileShader(fragment_source, GL_FRAGMENT_SHADER);
+    std::string shader_prelude = "#version 150\n";
+    shader_program.VertexShaderHandle = CompileShader(shader_prelude + vertex_source, GL_VERTEX_SHADER);
+    shader_program.FragmentShaderHandle = CompileShader(shader_prelude + fragment_source, GL_FRAGMENT_SHADER);
     if (!shader_program.FragmentShaderHandle || !shader_program.VertexShaderHandle) {
         ShaderProgramDestroy(shader_program);
         return false;
@@ -257,10 +252,26 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
 
     // Init GLFW Window
     {
-        glfwInit();
+        if (!glfwInit()) {
+            glfwTerminate();
+            exit(EXIT_FAILURE);
+        }
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_SAMPLES, 4);
+
         live_glsl->GLFWWindowHandle = glfwCreateWindow(live_glsl->WindowWidth, live_glsl->WindowHeight, "live-glsl", NULL, NULL);
+        if (!live_glsl->GLFWWindowHandle) {
+            glfwTerminate();
+            exit(EXIT_FAILURE);
+        }
         glfwMakeContextCurrent(live_glsl->GLFWWindowHandle);
         glfwSetWindowUserPointer(live_glsl->GLFWWindowHandle, live_glsl);
+        glfwSetErrorCallback([](int error, const char* description) {
+            fprintf(stderr, "Error: %s\n", description);
+        });
         glfwSetWindowSizeCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* window, int width, int height) {
             LiveGLSL* live_glsl = static_cast<LiveGLSL*>(glfwGetWindowUserPointer(window));
             live_glsl->WindowWidth = width;
@@ -280,7 +291,11 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
         int fb_height = 0;
         glfwGetFramebufferSize(live_glsl->GLFWWindowHandle, &fb_width, &fb_height);
         live_glsl->PixelDensity = (float)fb_width / (float)live_glsl->WindowWidth;
+        gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+        glfwSwapInterval(1);
     }
+
+    GUIInit(live_glsl->GLFWWindowHandle);
 
     ScreenLogInstance = ScreenLogCreate(live_glsl->PixelDensity);
 
@@ -297,7 +312,7 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
     // Init GL
     {
         glClearColor(0.21, 0.39, 0.74, 1.0);
-        float vertices[12] = {
+        const float vertices[] = {
             -1.0f,  1.0f,
              1.0f, -1.0f,
              1.0f,  1.0f,
@@ -306,12 +321,14 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
              1.0f, -1.0f,
         };
 
+        glGenVertexArrays(1, &live_glsl->VaoId);
+        glBindVertexArray(live_glsl->VaoId);
         glGenBuffers(1, &live_glsl->VertexBufferId);
         glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
         live_glsl->PositionVertexAttribute = glGetAttribLocation(ShaderProgramInstance.Handle, "position");
-        glVertexAttribPointer(live_glsl->PositionVertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(live_glsl->PositionVertexAttribute, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
         glEnableVertexAttribArray(live_glsl->PositionVertexAttribute);
     }
 
@@ -321,6 +338,8 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
 void LiveGLSLDestroy(LiveGLSL* live_glsl) {
     if (live_glsl->VertexBufferId) 
         glDeleteBuffers(1, &live_glsl->VertexBufferId);
+    if (live_glsl->VaoId)
+        glDeleteVertexArrays(1, &live_glsl->VaoId);
     delete live_glsl;
 }
 
@@ -348,6 +367,8 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
         }
 
         if (live_glsl.ShaderCompiled) {
+            GUINewFrame();
+
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             assert(ShaderProgramInstance.Handle != 0);
@@ -359,8 +380,7 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
             glViewport(0, 0, width, height);
             glUniform2f(glGetUniformLocation(ShaderProgramInstance.Handle, "resolution"), width, height);
             glUniform1f(glGetUniformLocation(ShaderProgramInstance.Handle, "time"), glfwGetTime());
-            glVertexAttribPointer(live_glsl.PositionVertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, 0);
-            glEnableVertexAttribArray(live_glsl.PositionVertexAttribute);
+            glBindVertexArray(live_glsl.VaoId);
 
             glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -368,9 +388,11 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
 
             if (live_glsl.IsContinuousRendering)
                 ScreenLogRenderFrameStatus(ScreenLogInstance, sixty_fps, live_glsl.PixelDensity);
-        }
 
-        ScreenLogRender(ScreenLogInstance, live_glsl.PixelDensity);
+            GUIRender();
+        } else {
+            ScreenLogRender(ScreenLogInstance, live_glsl.PixelDensity);
+        }
 
         glfwSwapBuffers(live_glsl.GLFWWindowHandle);
         if (live_glsl.IsContinuousRendering)
@@ -401,8 +423,8 @@ void FileWatcherThread(std::string shader_source_path) {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        std::cerr << "Please provide the fragment shader source path" << std::endl;
-        return -1;
+        fprintf(stderr, "Please provide the fragment shader source path\n");
+        exit(EXIT_FAILURE);
     }
 
     ShaderFileChanged.store(false);
@@ -419,5 +441,5 @@ int main(int argc, char **argv) {
 
     LiveGLSLDestroy(LiveGLSLInstance);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
