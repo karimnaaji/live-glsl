@@ -42,6 +42,7 @@ struct GLFONSvbo {
 typedef struct GLFONSvbo GLFONSvbo;
 
 struct GLStash {
+    GLuint vao;
     GLFONSvbo* vbo;
     FONSeffectType effect;
     glm::vec4 bbox;
@@ -81,28 +82,22 @@ struct GLFONScontext {
 
 typedef struct GLFONScontext GLFONScontext;
 
-#define STRINGIFY(A) #A
-
-static const GLchar* vertexShaderSrc = STRINGIFY(
-#ifdef GL_ES
-precision mediump float;
-#endif
-attribute vec4 a_position;
-attribute vec2 a_texCoord;
+static const GLchar* vertexShaderSrc = (GLchar*)R"END(
+#version 150
+in vec4 a_position;
+in vec2 a_texCoord;
 
 uniform mat4 u_mvp;
-varying vec2 v_uv;
+out vec2 v_uv;
 
 void main() {
     gl_Position = u_mvp * a_position;
     v_uv = a_texCoord;
 }
-);
+)END";
 
-static const GLchar* sdfFragShaderSrc = STRINGIFY(
-#ifdef GL_ES
-precision mediump float;
-#endif
+static const GLchar* sdfFragShaderSrc = (GLchar*)R"END(
+#version 150
 uniform sampler2D u_tex;
 uniform vec4 u_color;
 uniform vec4 u_outlineColor;
@@ -112,12 +107,13 @@ uniform float u_maxOutlineD;
 uniform float u_minInsideD;
 uniform float u_maxInsideD;
 
-varying vec2 v_uv;
+in vec2 v_uv;
+out vec4 color;
 
 const float gamma = 2.2;
 
 void main(void) {
-    float distance = texture2D(u_tex, v_uv).a;
+    float distance = texture(u_tex, v_uv).r;
 
     float a1 = smoothstep(u_minInsideD, u_maxInsideD, distance);
     float a2 = smoothstep(u_minOutlineD, u_maxOutlineD, distance);
@@ -125,24 +121,22 @@ void main(void) {
     a1 = pow(a1, 1.0 / gamma);
     a2 = pow(a2, 1.0 / gamma);
 
-    gl_FragColor = mix(u_outlineColor * a2, u_color * a1, u_mixFactor);
+    color = mix(u_outlineColor * a2, u_color * a1, u_mixFactor);
 }
-);
+)END";
 
-static const GLchar* defaultFragShaderSrc = STRINGIFY(
-#ifdef GL_ES
-precision mediump float;
-#endif
+static const GLchar* defaultFragShaderSrc = (GLchar*)R"END(
+#version 150
 uniform sampler2D u_tex;
 uniform vec4 u_color;
+out vec4 color;
 
-varying vec2 v_uv;
+in vec2 v_uv;
 void main(void) {
-    vec4 texColor = texture2D(u_tex, v_uv);
-    vec3 invColor = 1.0 - texColor.rgb;
-    gl_FragColor = vec4(invColor * u_color.rgb, u_color.a * texColor.a);
+    float alpha = texture(u_tex, v_uv).r;
+    color = vec4(u_color.rgb, u_color.a * alpha);
 }
-);
+)END";
 
 FONScontext* glfonsCreate(int width, int height, int flags);
 void glfonsDelete(FONScontext* ctx);
@@ -239,7 +233,7 @@ static int glfons__renderCreate(void* userPtr, int width, int height) {
     gl->height = height;
 
     glBindTexture(GL_TEXTURE_2D, gl->tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, gl->width, gl->height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, gl->width, gl->height, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     GLint viewport[4];
@@ -278,7 +272,7 @@ static void glfons__renderUpdate(void* userPtr, int* rect, const unsigned char* 
 
     glBindTexture(GL_TEXTURE_2D, gl->tex);
     const unsigned char* subdata = data + rect[1] * gl->width;
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, rect[1], gl->width, h, GL_ALPHA, GL_UNSIGNED_BYTE, subdata);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, rect[1], gl->width, h, GL_RED, GL_UNSIGNED_BYTE, subdata);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -298,6 +292,7 @@ static void glfons__renderDelete(void* userPtr) {
         GLStash* stash = elmt.second;
         if(stash != NULL) {
             glDeleteBuffers(BUFFER_SIZE, stash->vbo->buffers);
+            glDeleteVertexArrays(1, &stash->vao);
             delete stash->vbo;
             delete[] stash->glyphsXOffset;
             delete stash;
@@ -375,15 +370,21 @@ void glfonsBufferText(FONScontext* ctx, const char* s, fsuint* id, FONSeffectTyp
 
     stash->length = ctx->verts[(ctx->nverts*2)-2];
 
+    glGenVertexArrays(1, &stash->vao);
+    glBindVertexArray(stash->vao);
     glGenBuffers(BUFFER_SIZE, stash->vbo->buffers);
 
     glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[0]);
     glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(float) * ctx->nverts, ctx->verts, GL_STATIC_DRAW);
+    glVertexAttribPointer(glctx->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(glctx->posAttrib);
 
     glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[1]);
     glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(float) * ctx->nverts, ctx->tcoords, GL_STATIC_DRAW);
+    glVertexAttribPointer(glctx->texCoordAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(glctx->texCoordAttrib);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     stash->vbo->nverts = ctx->nverts;
 
@@ -434,9 +435,9 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
 
     glm::mat4 mvp = glctx->projectionMatrix * glctx->transform;
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, glctx->tex);
-    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
 
     GLuint program;
     switch (stash->effect) {
@@ -448,6 +449,8 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
     }
 
     glUseProgram(program);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, glctx->tex);
     glUniform1i(glGetUniformLocation(program, "u_tex"), 0);
     glUniformMatrix4fv(glGetUniformLocation(program, "u_mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
     glUniform4f(glGetUniformLocation(program, "u_color"), glctx->color.r, glctx->color.g, glctx->color.b, glctx->color.a);
@@ -461,23 +464,11 @@ void glfonsDrawText(FONScontext* ctx, fsuint id, unsigned int from, unsigned int
         glUniform1f(glGetUniformLocation(program, "u_maxInsideD"), glctx->sdfProperties[3]);
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[0]);
-    glVertexAttribPointer(glctx->posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(glctx->posAttrib);
-
-    glBindBuffer(GL_ARRAY_BUFFER, stash->vbo->buffers[1]);
-    glVertexAttribPointer(glctx->texCoordAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(glctx->texCoordAttrib);
-
+    glBindVertexArray(stash->vao);
     glDrawArrays(GL_TRIANGLES, iFirst, count);
 
-    glDisableVertexAttribArray(glctx->posAttrib);
-    glDisableVertexAttribArray(glctx->texCoordAttrib);
-    glDisableVertexAttribArray(glctx->colorAttrib);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
     glUseProgram(0);
-    glDisable(GL_TEXTURE_2D);
 }
 
 void glfonsDrawText(FONScontext* ctx, fsuint id) {

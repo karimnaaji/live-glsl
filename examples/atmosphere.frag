@@ -1,6 +1,8 @@
 uniform vec2 resolution;
 uniform float time;
 
+out vec4 out_color;
+
 #define PI                      3.141592
 #define BETA_R                  vec3(5.5e-6, 13.0e-6, 22.4e-6)
 #define BETA_M                  vec3(21e-6, 21e-6, 21e-6)
@@ -172,5 +174,5 @@ void main() {
     vec3 rnd = vec3(hash12(uv + fract(time)));
     color += rnd / 255.0;
 
-    gl_FragColor = vec4(color, 1.0);
+    out_color = vec4(color, 1.0);
 }
