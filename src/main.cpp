@@ -72,6 +72,15 @@ std::vector<std::string> SplitString(const std::string& s, char delim) {
 }
 
 bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std::string uniform_line, GUIComponent& out_component, std::string& parse_error) {
+    auto ReportError = [&](const std::string& error) {
+        char buffer[33];
+        sprintf(buffer,"%d", line_number);
+        parse_error = error + " at line " + buffer;
+    };
+    if (uniform_line.empty()) {
+        ReportError("GUI type not associated with any uniform '" + gui_component_line + "'");
+        return false;
+    }
     uint32_t current_char = 0;
     while (current_char < gui_component_line.size() && gui_component_line[current_char] != '(') {
         ++current_char;
@@ -100,9 +109,7 @@ bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std
     } else if (component_name == "color4") {
         out_component.Type = EGUIComponentTypeColor4;
     } else {
-        char buffer[33];
-        sprintf(buffer,"%d", line_number);
-        parse_error = "Invalid GUI type '" + component_name + "' at line " + buffer;
+        ReportError("Invalid GUI type name '" + component_name + "'");
         return false;
     }
 
@@ -113,9 +120,14 @@ bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std
             int scanned = sscanf(component_data.c_str(), "(%f, %f)",
                 &out_component.SliderRange.Start,
                 &out_component.SliderRange.End);
-            if (scanned != 2) return false;
+            if (scanned != 2) {
+                std::string error;
+                error += "Invalid format for GUI component data '" + component_data + "'\n";
+                error += "Format should be @" + component_name + "(start_range, end_range)";
+                ReportError(error);
+                return false;
+            }
         }
-
         if (out_component.Type == EGUIComponentTypeDrag1 ||
             out_component.Type == EGUIComponentTypeDrag2 ||
             out_component.Type == EGUIComponentTypeDrag3) {
@@ -123,12 +135,23 @@ bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std
                 &out_component.DragRange.Speed,
                 &out_component.DragRange.Start,
                 &out_component.DragRange.End);
-            if (scanned != 3) return false;
+            if (scanned != 3) {
+                std::string error;
+                error += "Invalid format for GUI component data " + component_data + "\n";
+                error += "Format should be @" + component_name + "(speed, start_range, end_range)";
+                ReportError(error);
+                return false;
+            }
         }
     }
     
     std::vector<std::string> uniform_tokens = SplitString(uniform_line,  ' ');
-    if (uniform_tokens.size() != 3 && uniform_tokens[0] != "uniform") {
+    if (uniform_tokens.size() != 3) {
+        ReportError("GUI associated with invalid uniform");
+        return false;
+    }
+    if (uniform_tokens[0] != "uniform") {
+        ReportError("GUI type not associated with a uniform");
         return false;
     }
     std::string uniform_type = uniform_tokens[1];
@@ -139,15 +162,13 @@ bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std
     } else if (uniform_type == "vec3") {
         out_component.UniformType = EGUIUniformTypeVec3;
     } else {
-        char buffer[33];
-        sprintf(buffer,"%d", line_number);
-        parse_error = "Unsupported GUI uniform type '" + uniform_type + "' at line " + buffer;
+        ReportError("GUI not supported for uniform type '" + uniform_type + "'");
         return false;
     }
     out_component.UniformName = uniform_tokens[2].substr(0, uniform_tokens[2].size() - 1);
 
     if (out_component.UniformName == "time" || out_component.UniformName == "resolution") {
-        // TODO: Error log
+        ReportError("GUI type not allowed for builtin uniforms");
         return false;
     }
     return true;
@@ -465,8 +486,7 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
 
         double current_time = glfwGetTime();
         ++frame_count;
-        if (current_time - previous_time >= 1.0)
-        {
+        if (current_time - previous_time >= 1.0) {
             sixty_fps = frame_count >= 60;
             frame_count = 0;
             previous_time = current_time;
@@ -518,7 +538,7 @@ void FileWatcherThread(std::string shader_source_path) {
     stat(real_path, &st);
     while (!ShouldQuit) {
         stat(real_path, &st);
-        if(st.st_mtime != last_changed) {
+        if (st.st_mtime != last_changed) {
             ShaderFileChanged.store(true);
             last_changed = st.st_mtime;
             glfwPostEmptyEvent();
