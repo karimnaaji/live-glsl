@@ -35,6 +35,7 @@ struct ShaderProgram {
 };
 
 struct LiveGLSL {
+    std::vector<GUIComponent> GUIComponents;
     GLFWwindow* GLFWWindowHandle;
     GLuint VertexBufferId;
     GLuint VaoId;
@@ -70,21 +71,120 @@ std::vector<std::string> SplitString(const std::string& s, char delim) {
     return elems;
 }
 
-bool ReadFile(const std::string& path, std::string& out) {
-    std::ifstream file;
-    std::string buffer;
-    file.open(path.c_str());
-
-    if (file.is_open()) {
-        while (!file.eof()) {
-            getline(file, buffer);
-            out += buffer + "\n";
-        }
-        file.close();
-        return true;
+bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std::string uniform_line, GUIComponent& out_component, std::string& parse_error) {
+    uint32_t current_char = 0;
+    while (current_char < gui_component_line.size() && gui_component_line[current_char] != '(') {
+        ++current_char;
     }
 
-    return false;
+    std::string component_name = gui_component_line.substr(0, current_char);
+    std::string component_data = gui_component_line.substr(current_char, std::string::npos);
+    if (component_name == "slider1") {
+        out_component.Type = EGUIComponentTypeSlider1;
+    } else if (component_name == "slider2") {
+        out_component.Type = EGUIComponentTypeSlider2;
+    } else if (component_name == "slider3") {
+        out_component.Type = EGUIComponentTypeSlider3;
+    } else if (component_name == "slider4") {
+        out_component.Type = EGUIComponentTypeSlider4;
+    } else if (component_name == "drag1") {
+        out_component.Type = EGUIComponentTypeDrag1;
+    } else if (component_name == "drag2") {
+        out_component.Type = EGUIComponentTypeDrag2;
+    } else if (component_name == "drag3") {
+        out_component.Type = EGUIComponentTypeDrag3;
+    } else if (component_name == "drag4") {
+        out_component.Type = EGUIComponentTypeDrag4;
+    } else if (component_name == "color3") {
+        out_component.Type = EGUIComponentTypeColor3;
+    } else if (component_name == "color4") {
+        out_component.Type = EGUIComponentTypeColor4;
+    } else {
+        char buffer[33];
+        sprintf(buffer,"%d", line_number);
+        parse_error = "Invalid GUI type '" + component_name + "' at line " + buffer;
+        return false;
+    }
+
+    if (!component_data.empty()) {
+        if (out_component.Type == EGUIComponentTypeSlider1 ||
+            out_component.Type == EGUIComponentTypeSlider2 ||
+            out_component.Type == EGUIComponentTypeSlider3) {
+            int scanned = sscanf(component_data.c_str(), "(%f, %f)",
+                &out_component.SliderRange.Start,
+                &out_component.SliderRange.End);
+            if (scanned != 2) return false;
+        }
+
+        if (out_component.Type == EGUIComponentTypeDrag1 ||
+            out_component.Type == EGUIComponentTypeDrag2 ||
+            out_component.Type == EGUIComponentTypeDrag3) {
+            int scanned = sscanf(component_data.c_str(), "(%f, %f, %f)",
+                &out_component.DragRange.Speed,
+                &out_component.DragRange.Start,
+                &out_component.DragRange.End);
+            if (scanned != 3) return false;
+        }
+    }
+    
+    std::vector<std::string> uniform_tokens = SplitString(uniform_line,  ' ');
+    if (uniform_tokens.size() != 3 && uniform_tokens[0] != "uniform") {
+        return false;
+    }
+    std::string uniform_type = uniform_tokens[1];
+    if (uniform_type == "float") {
+        out_component.UniformType = EGUIUniformTypeFloat;
+    } else if (uniform_type == "vec2") {
+        out_component.UniformType = EGUIUniformTypeVec2;
+    } else if (uniform_type == "vec3") {
+        out_component.UniformType = EGUIUniformTypeVec3;
+    } else {
+        char buffer[33];
+        sprintf(buffer,"%d", line_number);
+        parse_error = "Unsupported GUI uniform type '" + uniform_type + "' at line " + buffer;
+        return false;
+    }
+    out_component.UniformName = uniform_tokens[2].substr(0, uniform_tokens[2].size() - 1);
+
+    if (out_component.UniformName == "time" || out_component.UniformName == "resolution") {
+        // TODO: Error log
+        return false;
+    }
+    return true;
+}
+
+bool ReadShaderFile(const std::string& path, std::string& out, std::vector<GUIComponent>& out_components, std::string& read_file_error) {
+    std::ifstream file;
+    std::string curr_buffer;
+    std::string prev_buffer;
+    file.open(path.c_str());
+
+    if (!file.is_open()) {
+        read_file_error = "Unable read file at path " + path;
+        return false;
+    }
+
+    out_components.clear();
+    uint32_t line_number = 0;
+    while (!file.eof()) {
+        getline(file, curr_buffer);
+        uint32_t current_char = 0;
+        while (isspace(curr_buffer[current_char])) {
+            ++current_char;
+        }
+        if (prev_buffer[current_char] == '@') {
+            GUIComponent component;
+            if (!ParseGUIComponent(line_number, prev_buffer.substr(current_char + 1, std::string::npos), curr_buffer, component, read_file_error))
+                return false;
+            out_components.push_back(component);
+        }
+        if (curr_buffer[current_char] != '@')
+            out += curr_buffer + "\n";
+        prev_buffer = curr_buffer;
+        ++line_number;
+    }
+    file.close();
+    return true;
 }
 
 ScreenLog ScreenLogCreate(float pixel_density) {
@@ -302,11 +402,12 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
     // Compile shader
     {
         std::string shader_source;
-        if (!ReadFile(shader_path, shader_source)) {
-            ScreenLogBuffer(ScreenLogInstance, std::string("Unable read file at path " + shader_path).c_str());
+        std::string read_file_error;
+        if (!ReadShaderFile(shader_path, shader_source, live_glsl->GUIComponents, read_file_error)) {
+            ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());
+        } else {
+            live_glsl->ShaderCompiled = ShaderProgramBuild(ShaderProgramInstance, shader_source, DefaultVertexShader);
         }
-
-        live_glsl->ShaderCompiled = ShaderProgramBuild(ShaderProgramInstance, shader_source, DefaultVertexShader);
     }
 
     // Init GL
@@ -350,11 +451,16 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
 
     while (!glfwWindowShouldClose(live_glsl.GLFWWindowHandle)) {
         std::string shader_source;
-        if (ShaderFileChanged && ReadFile(live_glsl.ShaderPath, shader_source)) {
+        std::string read_file_error;
+        if (ShaderFileChanged && ReadShaderFile(live_glsl.ShaderPath, shader_source, live_glsl.GUIComponents, read_file_error)) {
             ShaderProgramDetach(ShaderProgramInstance);
             live_glsl.ShaderCompiled = ShaderProgramBuild(ShaderProgramInstance, shader_source, DefaultVertexShader);
-            ShaderFileChanged.store(false);
             glfwPostEmptyEvent();
+        }
+        ShaderFileChanged.store(false);
+
+        if (!read_file_error.empty()) {
+            ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());            
         }
 
         double current_time = glfwGetTime();
@@ -367,7 +473,7 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
         }
 
         if (live_glsl.ShaderCompiled) {
-            GUINewFrame();
+            bool draw_gui = GUINewFrame(live_glsl.GUIComponents);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -389,10 +495,10 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
             if (live_glsl.IsContinuousRendering)
                 ScreenLogRenderFrameStatus(ScreenLogInstance, sixty_fps, live_glsl.PixelDensity);
 
-            GUIRender();
-        } else {
-            ScreenLogRender(ScreenLogInstance, live_glsl.PixelDensity);
+            if (draw_gui)
+                GUIRender();
         }
+        ScreenLogRender(ScreenLogInstance, live_glsl.PixelDensity);
 
         glfwSwapBuffers(live_glsl.GLFWWindowHandle);
         if (live_glsl.IsContinuousRendering)

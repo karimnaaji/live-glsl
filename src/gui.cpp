@@ -72,13 +72,15 @@ void GUIInit(GLFWwindow* window_handle) {
     style.Colors[ImGuiCol_PopupBg]               = ImVec4(0.20f, 0.20f, 0.20f, 0.50f);
 
     ImGuiIO& io = ImGui::GetIO();
-    if (!io.Fonts->AddFontFromFileTTF(FONT_PATH1, 20)) {
-    	io.Fonts->AddFontFromFileTTF(FONT_PATH2, 20);
+    if (!io.Fonts->AddFontFromFileTTF(FONT_PATH1, 15)) {
+        io.Fonts->AddFontFromFileTTF(FONT_PATH2, 15);
     }
 }
 
-void GUINewFrame() {
+bool GUINewFrame(std::vector<GUIComponent>& gui_components) {
     ImGui_ImplGlfwGL3_NewFrame();
+
+    if (gui_components.size() == 0) return false;
 
     ImGuiWindowFlags options = ImGuiWindowFlags_NoTitleBar
         | ImGuiWindowFlags_NoResize
@@ -86,8 +88,71 @@ void GUINewFrame() {
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::Begin("Fixed Overlay", nullptr, ImVec2(0, 0), 0.3f, options);
-    static float test = 0.0f;
-    ImGui::SliderFloat("LUT", &test, 0.0, 1.0);
+
+    for (GUIComponent& component : gui_components) {
+        switch (component.Type) {
+            case EGUIComponentTypeSlider1:
+            ImGui::SliderFloat(component.UniformName.c_str(),
+                (float*)&component.Vec1,
+                component.SliderRange.Start,
+                component.SliderRange.End);
+            break;
+            case EGUIComponentTypeSlider2:
+            ImGui::SliderFloat2(component.UniformName.c_str(),
+                (float*)&component.Vec2,
+                component.SliderRange.Start,
+                component.SliderRange.End);
+                break;
+            case EGUIComponentTypeSlider3:
+            ImGui::SliderFloat3(component.UniformName.c_str(),
+                (float*)&component.Vec3,
+                component.SliderRange.Start,
+                component.SliderRange.End);
+                break;
+            case EGUIComponentTypeSlider4:
+            ImGui::SliderFloat4(component.UniformName.c_str(),
+                (float*)&component.Vec4,
+                component.SliderRange.Start,
+                component.SliderRange.End);
+                break;
+            case EGUIComponentTypeDrag1:
+            ImGui::DragFloat(component.UniformName.c_str(),
+                (float*)&component.Vec1,
+                component.DragRange.Speed,
+                component.DragRange.Start,
+                component.DragRange.End);
+                break;
+            case EGUIComponentTypeDrag2:
+            ImGui::DragFloat2(component.UniformName.c_str(),
+                (float*)&component.Vec2,
+                component.DragRange.Speed,
+                component.DragRange.Start,
+                component.DragRange.End);
+                break;
+            case EGUIComponentTypeDrag3:
+            ImGui::DragFloat3(component.UniformName.c_str(),
+                (float*)&component.Vec3,
+                component.DragRange.Speed,
+                component.DragRange.Start,
+                component.DragRange.End);
+                break;
+            case EGUIComponentTypeDrag4:
+            ImGui::DragFloat3(component.UniformName.c_str(),
+                (float*)&component.Vec4,
+                component.DragRange.Speed,
+                component.DragRange.Start,
+                component.DragRange.End);
+                break;                
+            case EGUIComponentTypeColor3:
+            ImGui::ColorEdit3(component.UniformName.c_str(), (float*)&component.Vec3);
+                break;
+            case EGUIComponentTypeColor4:
+            ImGui::ColorEdit4(component.UniformName.c_str(), (float*)&component.Vec4);
+                break;
+        }
+    }
+
+    return true;
 }
 
 void GUIRender() {
