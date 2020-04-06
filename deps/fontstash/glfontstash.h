@@ -401,6 +401,7 @@ void glfonsUnbufferText(FONScontext* ctx, fsuint id) {
         GLStash* stash = glctx->stashes->at(id);
 
         glDeleteBuffers(BUFFER_SIZE, stash->vbo->buffers);
+        glDeleteVertexArrays(1, &stash->vao);
         // WIP : maybe release cpu mem
     }
 }
