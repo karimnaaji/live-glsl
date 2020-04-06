@@ -72,8 +72,8 @@ void GUIInit(GLFWwindow* window_handle) {
     style.Colors[ImGuiCol_PopupBg]               = ImVec4(0.20f, 0.20f, 0.20f, 0.50f);
 
     ImGuiIO& io = ImGui::GetIO();
-    if (!io.Fonts->AddFontFromFileTTF(FONT_PATH1, 15)) {
-        io.Fonts->AddFontFromFileTTF(FONT_PATH2, 15);
+    if (!io.Fonts->AddFontFromFileTTF(FONT_PATH2, 15)) {
+        io.Fonts->AddFontFromFileTTF(FONT_PATH1, 15);
     }
 }
 
