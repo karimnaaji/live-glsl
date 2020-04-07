@@ -82,6 +82,14 @@ bool GUINewFrame(std::vector<GUIComponent>& gui_components) {
 
     if (gui_components.size() == 0) return false;
 
+    uint32_t components_in_use = 0;
+    for (const GUIComponent& component : gui_components) {
+        if (component.IsInUse)
+            ++components_in_use;
+    }
+
+    if (components_in_use == 0) return false;
+
     ImGuiWindowFlags options = ImGuiWindowFlags_NoTitleBar
         | ImGuiWindowFlags_NoResize
         | ImGuiWindowFlags_NoMove;
@@ -90,6 +98,7 @@ bool GUINewFrame(std::vector<GUIComponent>& gui_components) {
     ImGui::Begin("Fixed Overlay", nullptr, ImVec2(0, 0), 0.3f, options);
 
     for (GUIComponent& component : gui_components) {
+        if (!component.IsInUse) continue;
         switch (component.Type) {
             case EGUIComponentTypeSlider1:
             ImGui::SliderFloat(component.UniformName.c_str(),
