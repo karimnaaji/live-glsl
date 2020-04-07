@@ -1,7 +1,6 @@
 uniform vec2 resolution;
 uniform float time;
 
-
 out vec4 out_color;
 
 #define PI                      3.141592
@@ -134,8 +133,9 @@ void main() {
     position.x += 0.3;
 
     vec3 color = vec3(0.0);
-    //vec3 sun_position = vec3(0.0, -0.001 + cos(time * 0.1), -1.0);
-    vec3 sun_position = normalize(vec3(0.0, -0.01, -1.0));
+    //vec3 sun_position = vec3(0.0, -0.001 + cos(time * 0.3), -1.0);
+    //vec3 sun_position = vec3(0.0, -0.9, -1.0);
+
     vec3 sun_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), sun_position, SUN_INTENSITY);
     vec3 moon_light = vec3(0.0);
     if (sun_position.y < 0.0) {
