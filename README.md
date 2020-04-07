@@ -31,7 +31,8 @@ GUI elements
 
 ![](images/screenshot3.png)
 
-GUI elements use a specific syntax and should be placed before the uniform statements.
+GUI elements allows to control shader uniform inputs. They use a specific syntax and should be placed right before the uniform statement they are associated with.
+
 The following GUI elements are supported:
 
 - `slider1`
