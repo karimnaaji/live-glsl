@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <cassert>
 #include "glm.hpp"
 
 #define FONT_PATH1 "/Library/Fonts/Arial.ttf"
@@ -75,6 +76,38 @@ inline bool GUIIsDragType(EGUIComponentType type) {
            type == EGUIComponentTypeDrag2 ||
            type == EGUIComponentTypeDrag3 ||
            type == EGUIComponentTypeDrag4;
+}
+
+inline uint32_t GUIComponents(EGUIComponentType type) {
+    switch (type) {
+        case EGUIComponentTypeDrag1:
+        case EGUIComponentTypeSlider1:
+        return 1;
+        case EGUIComponentTypeDrag2:
+        case EGUIComponentTypeSlider2:
+        return 2;
+        case EGUIComponentTypeColor3:
+        case EGUIComponentTypeDrag3:
+        case EGUIComponentTypeSlider3:
+        return 3;
+        case EGUIComponentTypeColor4:
+        case EGUIComponentTypeDrag4:
+        case EGUIComponentTypeSlider4:
+        return 4;
+    }
+    assert(false);
+    return 0;
+}
+
+inline uint32_t GUIUniformVariableComponents(EGUIUniformType uniform_type) {
+    switch (uniform_type) {
+        case EGUIUniformTypeFloat: return 1;
+        case EGUIUniformTypeVec2: return 2;
+        case EGUIUniformTypeVec3: return 3;
+        case EGUIUniformTypeVec4: return 4;
+    }
+    assert(false);
+    return 0;
 }
 
 void GUIInit(GLFWwindow* window_handle);

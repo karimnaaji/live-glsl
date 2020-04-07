@@ -137,7 +137,7 @@ bool GUINewFrame(std::vector<GUIComponent>& gui_components) {
                 component.DragRange.End);
                 break;
             case EGUIComponentTypeDrag4:
-            ImGui::DragFloat3(component.UniformName.c_str(),
+            ImGui::DragFloat4(component.UniformName.c_str(),
                 (float*)&component.Vec4,
                 component.DragRange.Speed,
                 component.DragRange.Start,

@@ -74,7 +74,7 @@ std::vector<std::string> SplitString(const std::string& s, char delim) {
 bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, GUIComponent& out_component, std::string& out_parse_error) {
     auto ReportError = [&](const std::string& error) {
         char buffer[33];
-        sprintf(buffer,"%d", line_number);
+        sprintf(buffer, "%d", line_number);
         out_parse_error = error + " at line " + buffer;
     };
     if (uniform_line.empty()) {
@@ -170,6 +170,12 @@ bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_li
         ReportError("GUI not supported for uniform type '" + uniform_type + "'");
         return false;
     }
+
+    if (GUIComponents(out_component.Type) != GUIUniformVariableComponents(out_component.UniformType)) {
+        ReportError("GUI component count does not match uniform component count");
+        return false;
+    }
+
     out_component.UniformName = uniform_tokens[2].substr(0, uniform_tokens[2].size() - 1);
 
     if (out_component.UniformName == "time" || out_component.UniformName == "resolution") {
@@ -511,8 +517,26 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
             glViewport(0, 0, width, height);
             glUniform2f(glGetUniformLocation(ShaderProgramInstance.Handle, "resolution"), width, height);
             glUniform1f(glGetUniformLocation(ShaderProgramInstance.Handle, "time"), glfwGetTime());
-            glBindVertexArray(live_glsl.VaoId);
 
+            for (const GUIComponent& gui_component : live_glsl.GUIComponents) {
+                GLuint uniform_location = glGetUniformLocation(ShaderProgramInstance.Handle, gui_component.UniformName.c_str());
+                switch (gui_component.UniformType) {
+                    case EGUIUniformTypeFloat:
+                    glUniform1f(uniform_location, gui_component.Vec1);
+                    break;
+                    case EGUIUniformTypeVec2:
+                    glUniform2f(uniform_location, gui_component.Vec2.x, gui_component.Vec2.y);
+                    break;
+                    case EGUIUniformTypeVec3:
+                    glUniform3f(uniform_location, gui_component.Vec3.x, gui_component.Vec3.y, gui_component.Vec3.z);
+                    break;
+                    case EGUIUniformTypeVec4:
+                    glUniform4f(uniform_location, gui_component.Vec4.x, gui_component.Vec4.y, gui_component.Vec4.z, gui_component.Vec4.w);
+                    break;
+                }
+            }
+
+            glBindVertexArray(live_glsl.VaoId);
             glDrawArrays(GL_TRIANGLES, 0, 6);
 
             live_glsl.IsContinuousRendering = glGetUniformLocation(ShaderProgramInstance.Handle, "time") != -1;
