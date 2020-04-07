@@ -45,14 +45,18 @@ The following GUI elements are supported:
 - `color3`
 - `color4`
 
-The GUI elements should be preceded by an `@` and followed by their component description.
-Slider types should be followed by their corresponding `speed`, `min_value` and `max_value`. For example:
+GUI elements should be preceded by an `@` and immediately followed by their parameters in parenthesis.
+
+Drag types follow the syntax `drag(speed, min_value, max_value)`. For example:
 ```
-@slider2(0.1, 0.0, 1.0)
+@drag2(0.1, 0.0, 1.0)
 uniform vec2 uniform_name;
 ```
-Drag types should be followed by their corresponding `min_value`, `max_value`. For example:
+
+Slider types follow the syntax `slider(min_value, max_value)`. For example:
 ```
 @slider1(-1.0, 1.0)
 uniform float uniform_name;
 ```
+
+Color types do not need any parameter.
