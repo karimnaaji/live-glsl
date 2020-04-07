@@ -276,7 +276,7 @@ void ScreenLogRender(ScreenLog& screen_log, float pixel_density) {
     }
 }
 
-void ScreenLogRenderFrameStatus(ScreenLog& screen_log, bool sixty_fps, float pixel_density) {
+void ScreenLogRenderFrameStatus(ScreenLog& screen_log, uint32_t screen_width, bool sixty_fps, float pixel_density) {
     char buffer[32];
     sprintf(buffer, "■");
     static fsuint id = 0;
@@ -288,7 +288,7 @@ void ScreenLogRenderFrameStatus(ScreenLog& screen_log, bool sixty_fps, float pix
     else
         glfonsSetColor(screen_log.FontContext, 1.0, 0.0, 0.0, 1.0);
     glfonsPushMatrix(screen_log.FontContext);
-    glfonsTranslate(screen_log.FontContext, FONT_SIZE * pixel_density * 0.5f, FONT_SIZE * pixel_density);
+    glfonsTranslate(screen_log.FontContext, screen_width - FONT_SIZE * pixel_density, FONT_SIZE * pixel_density);
     glfonsDrawText(screen_log.FontContext, id);
     glfonsPopMatrix(screen_log.FontContext);
     glfonsSetColor(screen_log.FontContext, 1.0, 1.0, 1.0, 1.0);
@@ -504,6 +504,11 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
         }
 
         if (live_glsl.ShaderCompiled) {
+            for (GUIComponent& gui_component : live_glsl.GUIComponents) {
+                GLuint uniform_location = glGetUniformLocation(ShaderProgramInstance.Handle, gui_component.UniformName.c_str());
+                gui_component.IsInUse = uniform_location != -1;
+            }
+
             bool draw_gui = GUINewFrame(live_glsl.GUIComponents);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -542,7 +547,7 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
             live_glsl.IsContinuousRendering = glGetUniformLocation(ShaderProgramInstance.Handle, "time") != -1;
 
             if (live_glsl.IsContinuousRendering)
-                ScreenLogRenderFrameStatus(ScreenLogInstance, sixty_fps, live_glsl.PixelDensity);
+                ScreenLogRenderFrameStatus(ScreenLogInstance, width, sixty_fps, live_glsl.PixelDensity);
 
             if (draw_gui)
                 GUIRender();

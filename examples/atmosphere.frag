@@ -1,3 +1,5 @@
+// Author: @karimnaaji
+
 uniform vec2 resolution;
 uniform float time;
 
@@ -13,10 +15,32 @@ out vec4 out_color;
 #define ATMOSPHERE_RADIUS       6420e3
 #define SAMPLE_STEPS            10
 #define DENSITY_STEPS           10
+
+// #define USE_GUI
+#ifdef USE_GUI
+
+@slider1(0.0, 50.0)
+uniform float sun_intensity;
+@slider1(0.0, 10.0)
+uniform float moon_intensity;
+@slider1(0.0, 5.0)
+uniform float density_scalar_m;
+@slider1(0.0, 5.0)
+uniform float density_scalar_r;
+
+#define SUN_INTENSITY           sun_intensity
+#define MOON_INTENSITY          moon_intensity
+#define DENSITY_SCALAR_M        density_scalar_m
+#define DENSITY_SCALAR_R        density_scalar_r
+
+#else
+
 #define SUN_INTENSITY           25.0
 #define MOON_INTENSITY          2.0
 #define DENSITY_SCALAR_M        0.3
 #define DENSITY_SCALAR_R        1.3
+
+#endif
 
 float ray_scphere_exit(vec3 orig, vec3 dir, float radius) {
     float a = dot(dir, dir);
@@ -130,44 +154,21 @@ void main() {
     vec2 uv = gl_FragCoord.xy / resolution;
     vec3 position = vec3(uv * 4.0 - 1.0, -1.0);
     position.y += 1.0;
-    position.x += 0.3;
+    position.x -= 1.5;
 
     vec3 color = vec3(0.0);
-    //vec3 sun_position = vec3(0.0, -0.001 + cos(time * 0.3), -1.0);
-    //vec3 sun_position = vec3(0.0, -0.9, -1.0);
+    vec3 sun_position = vec3(0.0, -0.1 + sin(time * 0.1), -1.0);
 
     vec3 sun_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), sun_position, SUN_INTENSITY);
     vec3 moon_light = vec3(0.0);
     if (sun_position.y < 0.0) {
         moon_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), vec3(0.0, 1.0, 0.0), MOON_INTENSITY);
         color = mix(sun_light, moon_light, -sun_position.y * 0.5 + 0.5);
-#if 0
-        // Stars
-        #define N 2.0
-        vec2 R = resolution.xy;
-        float z = 30.0;
-        vec2 U = (2.0 * gl_FragCoord.xy - R) / R.y * z;
-        vec2 Ur = U + 0.2 * rand(floor(U));
-
-        vec3 O = vec3(0.0);
-        for (float x = -1.0; x <= 1.0; x += 1.0 / N) {
-            for (float y = -1.0; y <= 1.0; y += 1.0 / N) {
-                vec2 Us = Ur + vec2(x, y) * z / R.y;
-                float r = length(fract(Us) - 0.5 + floor(Us) - floor(U));
-                O += 0.0002 / (pow(r / z, 1.8) * z * z);
-            }
-        }
-
-        O = O * vec3(1.0) / pow(N + N + 1.0, 2.0);
-        O *= step(hash12(floor(U)), 0.003);
-
-        color += (O.rgb * -sun_position.y);
-#endif
     } else {
         color = sun_light;
     }
 
-    // Apply exposure.
+    // Apply exposure
     float luminance = 5e-5;
     float white_scale = 1.0748724675633854;
     color = uncharted2_tonemap((log2(2.0 / pow(luminance, 4.0))) * color) * white_scale;

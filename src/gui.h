@@ -52,6 +52,7 @@ struct GUIComponent {
     EGUIComponentType Type;
     EGUIUniformType UniformType;
     std::string UniformName;
+    bool IsInUse;
     union {
         GUIComponentSliderRange SliderRange;
         GUIComponentDragRange DragRange;
