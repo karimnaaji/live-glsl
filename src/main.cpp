@@ -71,11 +71,11 @@ std::vector<std::string> SplitString(const std::string& s, char delim) {
     return elems;
 }
 
-bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std::string uniform_line, GUIComponent& out_component, std::string& parse_error) {
+bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, GUIComponent& out_component, std::string& out_parse_error) {
     auto ReportError = [&](const std::string& error) {
         char buffer[33];
         sprintf(buffer,"%d", line_number);
-        parse_error = error + " at line " + buffer;
+        out_parse_error = error + " at line " + buffer;
     };
     if (uniform_line.empty()) {
         ReportError("GUI type not associated with any uniform '" + gui_component_line + "'");
@@ -114,9 +114,7 @@ bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std
     }
 
     if (!component_data.empty()) {
-        if (out_component.Type == EGUIComponentTypeSlider1 ||
-            out_component.Type == EGUIComponentTypeSlider2 ||
-            out_component.Type == EGUIComponentTypeSlider3) {
+        if (GUIIsSliderType(out_component.Type)) {
             int scanned = sscanf(component_data.c_str(), "(%f, %f)",
                 &out_component.SliderRange.Start,
                 &out_component.SliderRange.End);
@@ -127,10 +125,7 @@ bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std
                 ReportError(error);
                 return false;
             }
-        }
-        if (out_component.Type == EGUIComponentTypeDrag1 ||
-            out_component.Type == EGUIComponentTypeDrag2 ||
-            out_component.Type == EGUIComponentTypeDrag3) {
+        } else if (GUIIsDragType(out_component.Type)) {
             int scanned = sscanf(component_data.c_str(), "(%f, %f, %f)",
                 &out_component.DragRange.Speed,
                 &out_component.DragRange.Start,
@@ -142,6 +137,16 @@ bool ParseGUIComponent(uint32_t line_number, std::string gui_component_line, std
                 ReportError(error);
                 return false;
             }
+        }
+    } else {
+        // Initialize the data with convenient defaults
+        if (GUIIsSliderType(out_component.Type)) {
+            out_component.SliderRange.Start = 0.0f;
+            out_component.SliderRange.End = 1.0f;
+        } else if (GUIIsDragType(out_component.Type)) {
+            out_component.DragRange.Speed = 0.05f;
+            out_component.DragRange.Start = 0.0f;
+            out_component.DragRange.End = 1.0f;
         }
     }
     

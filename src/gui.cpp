@@ -159,3 +159,7 @@ void GUIRender() {
     ImGui::End();
     ImGui::Render();
 }
+
+void GUIDestroy() {
+    ImGui_ImplGlfwGL3_Shutdown();
+}
