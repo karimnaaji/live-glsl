@@ -1,6 +1,7 @@
 uniform vec2 resolution;
 uniform float time;
 
+
 out vec4 out_color;
 
 #define PI                      3.141592
@@ -115,7 +116,7 @@ vec3 uncharted2_tonemap(vec3 x) {
 }
 
 float rand(vec2 v) {
-    return 2.0* fract(4356.17 * sin(1e4 * dot(v, vec2(1.0, 171.3)))) - 1.0;
+    return 2.0 * fract(4356.17 * sin(1e4 * dot(v, vec2(1.0, 171.3)))) - 1.0;
 }
 
 #define MOD3 vec3(443.8975,397.2973, 491.1871)
@@ -134,13 +135,13 @@ void main() {
 
     vec3 color = vec3(0.0);
     //vec3 sun_position = vec3(0.0, -0.001 + cos(time * 0.1), -1.0);
-    vec3 sun_position = vec3(0.0, -0.9, -1.0);
+    vec3 sun_position = normalize(vec3(0.0, -0.01, -1.0));
     vec3 sun_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), sun_position, SUN_INTENSITY);
     vec3 moon_light = vec3(0.0);
     if (sun_position.y < 0.0) {
         moon_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), vec3(0.0, 1.0, 0.0), MOON_INTENSITY);
         color = mix(sun_light, moon_light, -sun_position.y * 0.5 + 0.5);
-
+#if 0
         // Stars
         #define N 2.0
         vec2 R = resolution.xy;
@@ -153,14 +154,15 @@ void main() {
             for (float y = -1.0; y <= 1.0; y += 1.0 / N) {
                 vec2 Us = Ur + vec2(x, y) * z / R.y;
                 float r = length(fract(Us) - 0.5 + floor(Us) - floor(U));
-                O += 0.005 / (pow(r / z, 2.0) * z * z);
+                O += 0.0002 / (pow(r / z, 1.8) * z * z);
             }
         }
 
         O = O * vec3(1.0) / pow(N + N + 1.0, 2.0);
-        O *= max(0.0001 * rand(floor(U)) * (0.5 * cos(time * rand(floor(U))) + 0.5), 0.0001);
+        O *= step(hash12(floor(U)), 0.003);
 
         color += (O.rgb * -sun_position.y);
+#endif
     } else {
         color = sun_light;
     }

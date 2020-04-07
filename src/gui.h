@@ -63,6 +63,21 @@ struct GUIComponent {
     };
 };
 
+inline bool GUIIsSliderType(EGUIComponentType type) {
+    return type == EGUIComponentTypeSlider1 ||
+           type == EGUIComponentTypeSlider2 ||
+           type == EGUIComponentTypeSlider3 ||
+           type == EGUIComponentTypeSlider4;
+}
+
+inline bool GUIIsDragType(EGUIComponentType type) {
+    return type == EGUIComponentTypeDrag1 ||
+           type == EGUIComponentTypeDrag2 ||
+           type == EGUIComponentTypeDrag3 ||
+           type == EGUIComponentTypeDrag4;
+}
+
 void GUIInit(GLFWwindow* window_handle);
 bool GUINewFrame(std::vector<GUIComponent>& gui_components);
 void GUIRender();
+void GUIDestroy();
