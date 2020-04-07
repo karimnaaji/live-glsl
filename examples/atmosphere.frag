@@ -16,7 +16,7 @@ out vec4 out_color;
 #define SAMPLE_STEPS            10
 #define DENSITY_STEPS           10
 
-// #define USE_GUI
+//#define USE_GUI
 #ifdef USE_GUI
 
 @slider1(0.0, 50.0)
@@ -27,11 +27,14 @@ uniform float moon_intensity;
 uniform float density_scalar_m;
 @slider1(0.0, 5.0)
 uniform float density_scalar_r;
+@color3
+uniform vec3 rayleigh_color_tint;
 
 #define SUN_INTENSITY           sun_intensity
 #define MOON_INTENSITY          moon_intensity
 #define DENSITY_SCALAR_M        density_scalar_m
 #define DENSITY_SCALAR_R        density_scalar_r
+#define COLOR_TINT_R            rayleigh_color_tint
 
 #else
 
@@ -39,6 +42,7 @@ uniform float density_scalar_r;
 #define MOON_INTENSITY          2.0
 #define DENSITY_SCALAR_M        0.3
 #define DENSITY_SCALAR_R        1.3
+#define COLOR_TINT_R            vec3(1.0)
 
 #endif
 
@@ -114,9 +118,8 @@ vec3 atmosphere(vec3 ray_dir, vec3 ray_origin, vec3 sun_position, float sun_inte
 
     // Calculate light color
     float turbidity = 2.0;
-    vec3 rayleigh_color_tint = vec3(1.0); //vec3(0.9, .8, .8);
     vec3 beta_m = BETA_M * turbidity;
-    vec3 beta_r = BETA_R * rayleigh_color_tint;
+    vec3 beta_r = BETA_R * COLOR_TINT_R;
     vec3 out_color = (scatter_r * phase_r * beta_r + scatter_m * phase_m * beta_m) * sun_intensity;
 
     const float sun_angular_diameter = 0.9998;
@@ -157,7 +160,7 @@ void main() {
     position.x -= 1.5;
 
     vec3 color = vec3(0.0);
-    vec3 sun_position = vec3(0.0, -0.1 + sin(time * 0.1), -1.0);
+    vec3 sun_position = vec3(0.0, 0.001, -1.0);
 
     vec3 sun_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), sun_position, SUN_INTENSITY);
     vec3 moon_light = vec3(0.0);
