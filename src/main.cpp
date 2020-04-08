@@ -71,7 +71,7 @@ std::vector<std::string> SplitString(const std::string& s, char delim) {
     return elems;
 }
 
-bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, GUIComponent& out_component, std::string& out_parse_error) {
+bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, const std::vector<GUIComponent>& previous_components, GUIComponent& out_component, std::string& out_parse_error) {
     auto ReportError = [&](const std::string& error) {
         char buffer[33];
         sprintf(buffer, "%d", line_number);
@@ -182,6 +182,12 @@ bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_li
         ReportError("GUI type not allowed for builtin uniforms");
         return false;
     }
+
+    for (const GUIComponent& previous_component : previous_components) {
+        if (previous_component.UniformName == out_component.UniformName) {
+            std::memcpy(&out_component.Vec1, &previous_component.Vec1, sizeof(glm::vec4));
+        }
+    }
     return true;
 }
 
@@ -196,6 +202,7 @@ bool ReadShaderFile(const std::string& path, std::string& out, std::vector<GUICo
         return false;
     }
 
+    std::vector<GUIComponent> previous_components = out_components;
     out_components.clear();
     uint32_t line_number = 0;
     while (!file.eof()) {
@@ -206,7 +213,8 @@ bool ReadShaderFile(const std::string& path, std::string& out, std::vector<GUICo
         }
         if (prev_buffer[current_char] == '@') {
             GUIComponent component;
-            if (!ParseGUIComponent(line_number, prev_buffer.substr(current_char + 1, std::string::npos), curr_buffer, component, read_file_error))
+            std::string gui_component_line = prev_buffer.substr(current_char + 1, std::string::npos);
+            if (!ParseGUIComponent(line_number, gui_component_line, curr_buffer, previous_components, component, read_file_error))
                 return false;
             out_components.push_back(component);
         }
