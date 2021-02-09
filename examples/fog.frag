@@ -1,4 +1,4 @@
-#define ANIMATE
+//#define ANIMATE
 
 uniform vec2 resolution;
 uniform float time;
@@ -13,18 +13,17 @@ float noi(vec2 p) {
 
 float terrain(vec2 p) {
     p *= 0.0013;
-    float s = 1.0;
+    float s = 1.;
     float t = 0.0;
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 3; i++) {
         t += s * noi(p);
         s *= 0.5 + 0.1 * t;
         p = 0.97 * m2 * p + (t - 0.5) * 0.2;
     }
-    return t * 55.0;
+    return t * 45.0;
 }
 
-vec2 map(vec3 pos)
-{
+vec2 map(vec3 pos) {
     float m = 0.0;
     float h = pos.y - terrain(pos.xz);
     float k = 60.0;
@@ -38,17 +37,17 @@ vec2 map(vec3 pos)
 vec2 intersect(vec3 ro,vec3 rd,float tmin,float tmax ) {
     float t = tmin;
     float  m = 0.0;
-    for(int i=0; i < 200; i++) {
-        vec3 pos = ro + t*rd;
+    for(int i = 0; i < 100; i++) {
+        vec3 pos = ro + t * rd;
         vec2 res = map(pos);
         m = res.y;
-        if (res.x < (0.001 * t) || t > tmax) break;
+        if (res.x < (0.00001 * t) || t > tmax) break;
         t += res.x * 0.5;
     }
     return vec2(t, m);
 }
 
-mat3 setCamera(vec3 ro, vec3 ta, float cr) {
+mat3 set_camera(vec3 ro, vec3 ta, float cr) {
     vec3 cw = normalize(ta-ro);
     vec3 cp = vec3(sin(cr), cos(cr),0.0);
     vec3 cu = normalize(cross(cw,cp));
@@ -64,8 +63,8 @@ mat3 setCamera(vec3 ro, vec3 ta, float cr) {
 #define DENSITY_HEIGHT_SCALE_M  1200.0
 #define PLANET_RADIUS           6360e3
 #define ATMOSPHERE_RADIUS       6420e3
-#define SAMPLE_STEPS            6
-#define DENSITY_STEPS           8
+#define SAMPLE_STEPS            16
+#define DENSITY_STEPS           16
 
 @slider1(0.0, 50.0)
 uniform float sun_intensity;
@@ -80,6 +79,22 @@ uniform float light_z;
 uniform float moon_intensity;
 @slider1(0.0, 5.0)
 uniform float density_scalar_m;
+@slider1(0.0, 1.0)
+uniform float fog_depth_scale;
+@slider1(0.0, 1.0)
+uniform float sun_halo_intensity;
+@slider1(0.0, 1.0)
+uniform float fog_intensity;
+@slider1(1.0, 10.0)
+uniform float fog_depth_range;
+@slider1(1.0, 10.0)
+uniform float sun_halo_depth_range;
+@color3
+uniform vec3 fog_color;
+@color3
+uniform vec3 sun_halo_color;
+@color3
+uniform vec3 background_color;
 @slider1(0.0, 5.0)
 uniform float density_scalar_r;
 @color3
@@ -162,8 +177,7 @@ vec3 atmosphere(vec3 ray_dir, vec3 ray_origin, vec3 sun_position, float sun_inte
     float phase_m = phase_mie(cos_angle);
 
     // Calculate light color
-    float turbidity = 2.0;
-    vec3 beta_m = BETA_M * turbidity;
+    vec3 beta_m = BETA_M;
     vec3 beta_r = BETA_R * COLOR_TINT_R;
     vec3 out_color = (scatter_r * phase_r * beta_r + scatter_m * phase_m * beta_m) * sun_intensity;
 
@@ -197,17 +211,18 @@ void main() {
 #else
     vec3 ro = vec3(1000.0, 250.0, 1000.0);
 #endif
+
     vec3 ta = vec3(0.0, 0.0, 0.0);
-    mat3 cam = setCamera(ro, ta, cr);
+    mat3 cam = set_camera(ro, ta, cr);
 
     // light
     vec3 light1 = normalize(vec3(light_x, light_y, light_z));
 
     // generate ray
-    vec3 rd = cam * normalize(vec3(sp.xy, 1.5));
+    vec3 rd = cam * normalize(vec3(sp.xy, 1.0));
 
     // background
-    vec3 bgcol = atmosphere(rd, vec3(0.0, PLANET_RADIUS, 0), light1, SUN_INTENSITY); //dome(rd, light1);
+    vec3 bgcol = atmosphere(rd, vec3(0.0, PLANET_RADIUS, 0), light1, SUN_INTENSITY);
 
     // raymarch
     float tmin = 10.0;
@@ -216,19 +231,26 @@ void main() {
     float sundotc = clamp(dot(rd, light1), 0.0, 1.0);
 
     vec2 res = intersect(ro, rd, tmin, tmax);
-    vec3  col = vec3(0.1 * res.y); // = bgcol;
+    vec3 col = background_color;;
 
     // mountains
-    float t = res.x;
+    float depth = res.x;
+
+    float depth_range = fog_depth_range * 1e-7;
+    float sun_depth_range = sun_halo_depth_range * 1e-8;
+
+    vec3 halo = sun_halo_intensity * sun_halo_color;
+    vec3 fog = fog_intensity * fog_color;
 
     // fog
-    col = mix(col, 0.25 * mix(vec3(0.4, 0.75, 1.0), vec3(0.3,0.3,0.3), sundotc * sundotc), 1.0 - exp(-0.00000008*t*t));
+    col = mix(col, mix(fog, halo, sundotc * sundotc * sun_halo_intensity), 1.0 - exp(-depth_range * depth * depth));
 
     // sun scatter
-    col += 0.55*vec3(0.5,0.3,0.3)*pow(sundotc, 8.0)*(1.0-exp(-0.0003*t));
+    float sun_halo = pow(sundotc, 16.0);
+    col += halo * sun_halo * (1.0 - exp(-sun_depth_range * depth * depth));
 
     // background
-    col = mix(col, bgcol, 0.5);
+    col = mix(col, bgcol, .5);
 
     // Apply exposure
     float luminance = 5e-5;
