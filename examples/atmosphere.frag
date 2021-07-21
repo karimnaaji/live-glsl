@@ -5,6 +5,8 @@ uniform float time;
 
 out vec4 out_color;
 
+precision highp float;
+
 #define PI                      3.141592
 #define BETA_R                  vec3(5.5e-6, 13.0e-6, 22.4e-6)
 #define BETA_M                  vec3(21e-6, 21e-6, 21e-6)
@@ -16,46 +18,27 @@ out vec4 out_color;
 #define SAMPLE_STEPS            10
 #define DENSITY_STEPS           10
 
-//#define USE_GUI
-#ifdef USE_GUI
+@slider1(0.0, 3.1415)
+uniform float u_theta;
+@slider1(0.0, 6.2830)
+uniform float u_phi;
+@slider1(0.0, 90.0)
+uniform float u_fov;
+@slider1(0.3, 50.0)
+uniform float u_altitude;
+@slider1(-3.14, 3.14)
+uniform float u_rot_x;
 
-@slider1(0.0, 50.0)
-uniform float sun_intensity;
-@slider1(0.0, 10.0)
-uniform float moon_intensity;
-@slider1(0.0, 5.0)
-uniform float density_scalar_m;
-@slider1(0.0, 5.0)
-uniform float density_scalar_r;
-@color3
-uniform vec3 rayleigh_color_tint;
-
-#define SUN_INTENSITY           sun_intensity
-#define MOON_INTENSITY          moon_intensity
-#define DENSITY_SCALAR_M        density_scalar_m
-#define DENSITY_SCALAR_R        density_scalar_r
-#define COLOR_TINT_R            rayleigh_color_tint
-
-#else
-
-#define SUN_INTENSITY           25.0
-#define MOON_INTENSITY          2.0
-#define DENSITY_SCALAR_M        0.3
-#define DENSITY_SCALAR_R        1.3
-#define COLOR_TINT_R            vec3(1.0)
-
-#endif
-
-float ray_scphere_exit(vec3 orig, vec3 dir, float radius) {
+vec2 ray_sphere_intersection(vec3 orig, vec3 dir, float radius) {
     float a = dot(dir, dir);
     float b = 2.0 * dot(dir, orig);
     float c = dot(orig, orig) - radius * radius;
     float d = sqrt(b * b - 4.0 * a * c);
-    return (-b + d) / (2.0 * a);
+    return vec2(-b - d, -b + d) / (2.0 * a);
 }
 
 vec3 extinction(vec2 density) {
-    return exp(-vec3(BETA_R * DENSITY_SCALAR_R * density.x + BETA_M * DENSITY_SCALAR_M * density.y));
+    return exp(-vec3(BETA_R * density.x + BETA_M * density.y));
 }
 
 vec2 local_density(vec3 point) {
@@ -73,9 +56,13 @@ float phase_mie(float cos_angle) {
 }
 
 vec2 density_to_atmosphere(vec3 point, vec3 light_dir) {
-    float ray_len = ray_scphere_exit(point, light_dir, ATMOSPHERE_RADIUS);
+    vec2 intersection = ray_sphere_intersection(point, light_dir, PLANET_RADIUS);
+    if (intersection.x > 0.0) {
+        return vec2(1e20);
+    }
+    intersection = ray_sphere_intersection(point, light_dir, ATMOSPHERE_RADIUS);
+    float ray_len = intersection.y;
     float step_len = ray_len / float(DENSITY_STEPS);
-
     vec2 density_point_to_atmosphere = vec2(0.0);
     for (int i = 0; i < DENSITY_STEPS; ++i) {
         vec3 point_on_ray = point + light_dir * ((float(i) + 0.5) * step_len);
@@ -91,7 +78,12 @@ vec3 atmosphere(vec3 ray_dir, vec3 ray_origin, vec3 sun_position, float sun_inte
     vec3 scatter_r = vec3(0.0);
     vec3 scatter_m = vec3(0.0);
 
-    float ray_len = ray_scphere_exit(ray_origin, ray_dir, ATMOSPHERE_RADIUS);
+    vec2 intersection = ray_sphere_intersection(ray_origin, ray_dir, PLANET_RADIUS);
+    float ray_len = intersection.y > 0.0 ? intersection.x : 1e20;
+
+    intersection = ray_sphere_intersection(ray_origin, ray_dir, ATMOSPHERE_RADIUS);
+    ray_len = min(ray_len, intersection.y);
+
     float step_len = ray_len / float(SAMPLE_STEPS);
     for (int i = 0; i < SAMPLE_STEPS; ++i) {
         vec3 point_on_ray = ray_origin + ray_dir * ((float(i) + 0.5) * step_len);
@@ -117,15 +109,9 @@ vec3 atmosphere(vec3 ray_dir, vec3 ray_origin, vec3 sun_position, float sun_inte
     float phase_m = phase_mie(cos_angle);
 
     // Calculate light color
-    float turbidity = 2.0;
-    vec3 beta_m = BETA_M * turbidity;
-    vec3 beta_r = BETA_R * COLOR_TINT_R;
+    vec3 beta_m = BETA_M;
+    vec3 beta_r = BETA_R;
     vec3 out_color = (scatter_r * phase_r * beta_r + scatter_m * phase_m * beta_m) * sun_intensity;
-
-    const float sun_angular_diameter = 0.9998;
-    float sundisk = smoothstep(sun_angular_diameter, sun_angular_diameter + 0.00002, cos_angle);
-
-    out_color = mix(out_color, vec3(sundisk), 0.5);
 
     return out_color;
 }
@@ -155,28 +141,34 @@ float hash12(vec2 p)
 
 void main() {
     vec2 uv = gl_FragCoord.xy / resolution;
-    vec3 position = vec3(uv * 4.0 - 1.0, -1.0);
-    position.y += 1.0;
-    position.x -= 1.5;
+    float aspect = resolution.x / resolution.y;
+    uv = (2.0 * uv - 1.0) * tan(u_fov / 2.0 * PI / 180.0);
+    uv.x *= aspect;
 
+    vec3 ray_dir = vec3(uv.x, uv.y, -1.0);
     vec3 color = vec3(0.0);
-    vec3 sun_position = vec3(0.0, 0.001, -1.0);
+    vec3 sun_position = vec3(0.0, 0.2, -1.0);
 
-    vec3 sun_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), sun_position, SUN_INTENSITY);
-    vec3 moon_light = vec3(0.0);
-    if (sun_position.y < 0.0) {
-        moon_light = atmosphere(normalize(position), vec3(0.0, PLANET_RADIUS, 0), vec3(0.0, 1.0, 0.0), MOON_INTENSITY);
-        color = mix(sun_light, moon_light, -sun_position.y * 0.5 + 0.5);
-    } else {
-        color = sun_light;
-    }
+    float a = u_rot_x;
+    mat3 rot_x = mat3(
+        1.0,    0.0,     0.0,
+        0.0, cos(a), -sin(a),
+        0.0, sin(a),  cos(a));
+    ray_dir = rot_x * ray_dir;
 
-    // Apply exposure
+    float altitude = mix(PLANET_RADIUS, ATMOSPHERE_RADIUS, u_altitude);
+    vec3 position = vec3(
+        0.0,
+        altitude,
+        0.0
+    );
+
+    color = atmosphere(normalize(ray_dir), position, normalize(sun_position), 25.0);
+
     float luminance = 5e-5;
-    float white_scale = 1.0748724675633854;
+    float white_scale = 1.1;
     color = uncharted2_tonemap((log2(2.0 / pow(luminance, 4.0))) * color) * white_scale;
 
-    // Dither
     vec3 rnd = vec3(hash12(uv + fract(time)));
     color += rnd / 255.0;
 
