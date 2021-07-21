@@ -29,12 +29,12 @@ uniform float u_altitude;
 @slider1(-3.14, 3.14)
 uniform float u_rot_x;
 
-vec2 ray_sphere_intersection(vec3 orig, vec3 dir, float radius) {
+vec3 ray_sphere_intersection(vec3 orig, vec3 dir, float radius) {
     float a = dot(dir, dir);
     float b = 2.0 * dot(dir, orig);
     float c = dot(orig, orig) - radius * radius;
     float d = sqrt(b * b - 4.0 * a * c);
-    return vec2(-b - d, -b + d) / (2.0 * a);
+    return vec3(vec2(-b - d, -b + d) / (2.0 * a), d);
 }
 
 vec3 extinction(vec2 density) {
@@ -56,11 +56,11 @@ float phase_mie(float cos_angle) {
 }
 
 vec2 density_to_atmosphere(vec3 point, vec3 light_dir) {
-    vec2 intersection = ray_sphere_intersection(point, light_dir, PLANET_RADIUS);
+    vec2 intersection = ray_sphere_intersection(point, light_dir, PLANET_RADIUS).xy;
     if (intersection.x > 0.0) {
         return vec2(1e20);
     }
-    intersection = ray_sphere_intersection(point, light_dir, ATMOSPHERE_RADIUS);
+    intersection = ray_sphere_intersection(point, light_dir, ATMOSPHERE_RADIUS).xy;
     float ray_len = intersection.y;
     float step_len = ray_len / float(DENSITY_STEPS);
     vec2 density_point_to_atmosphere = vec2(0.0);
@@ -78,13 +78,19 @@ vec3 atmosphere(vec3 ray_dir, vec3 ray_origin, vec3 sun_position, float sun_inte
     vec3 scatter_r = vec3(0.0);
     vec3 scatter_m = vec3(0.0);
 
-    vec2 intersection = ray_sphere_intersection(ray_origin, ray_dir, PLANET_RADIUS);
-    float ray_len = intersection.y > 0.0 ? intersection.x : 1e20;
+    float ray_end = 1e20;
+    vec3 intersection_planet = ray_sphere_intersection(ray_origin, ray_dir, PLANET_RADIUS);
+    ray_end = intersection_planet.z < 0.0 ? 0.0 : min(intersection_planet.x, intersection_planet.y);
 
-    intersection = ray_sphere_intersection(ray_origin, ray_dir, ATMOSPHERE_RADIUS);
-    ray_len = min(ray_len, intersection.y);
+    float ray_start = 0.0;
+    vec3 intersection_atmosphere = ray_sphere_intersection(ray_origin, ray_dir, ATMOSPHERE_RADIUS);
+    ray_start = intersection_atmosphere.z < 0.0 ? 1e20 : min(intersection_atmosphere.x, intersection_atmosphere.y);
 
-    float step_len = ray_len / float(SAMPLE_STEPS);
+    if (intersection_atmosphere.z > 0.0 && intersection_planet.z < 0.0) {
+        ray_end = max(intersection_atmosphere.x, intersection_atmosphere.y);
+    }
+    ray_origin += ray_dir * ray_start;
+    float step_len = (ray_end - ray_start) / float(SAMPLE_STEPS);
     for (int i = 0; i < SAMPLE_STEPS; ++i) {
         vec3 point_on_ray = ray_origin + ray_dir * ((float(i) + 0.5) * step_len);
 
