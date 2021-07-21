@@ -37,7 +37,7 @@ vec2 map(vec3 pos) {
 vec2 intersect(vec3 ro,vec3 rd,float tmin,float tmax ) {
     float t = tmin;
     float  m = 0.0;
-    for(int i = 0; i < 100; i++) {
+    for(int i = 0; i < 160; i++) {
         vec3 pos = ro + t * rd;
         vec2 res = map(pos);
         m = res.y;
@@ -47,12 +47,12 @@ vec2 intersect(vec3 ro,vec3 rd,float tmin,float tmax ) {
     return vec2(t, m);
 }
 
-mat3 set_camera(vec3 ro, vec3 ta, float cr) {
-    vec3 cw = normalize(ta-ro);
-    vec3 cp = vec3(sin(cr), cos(cr),0.0);
-    vec3 cu = normalize(cross(cw,cp));
-    vec3 cv = normalize(cross(cu,cw));
-    return mat3(cu, cv, cw);
+mat3 view(vec3 ro) {
+    vec3 forward = normalize(-ro);
+    vec3 up = vec3(0.0, 1.0, 0.0);
+    vec3 cu = normalize(cross(forward, up));
+    vec3 cv = normalize(cross(cu, forward));
+    return mat3(cu, cv, forward);
 }
 
 #define PI                      3.141592
@@ -63,8 +63,8 @@ mat3 set_camera(vec3 ro, vec3 ta, float cr) {
 #define DENSITY_HEIGHT_SCALE_M  1200.0
 #define PLANET_RADIUS           6360e3
 #define ATMOSPHERE_RADIUS       6420e3
-#define SAMPLE_STEPS            16
-#define DENSITY_STEPS           16
+#define SAMPLE_STEPS            8
+#define DENSITY_STEPS           6
 
 @slider1(0.0, 50.0)
 uniform float sun_intensity;
@@ -89,6 +89,8 @@ uniform float fog_intensity;
 uniform float fog_depth_range;
 @slider1(1.0, 10.0)
 uniform float sun_halo_depth_range;
+@slider1(1.0, 100000.0)
+uniform float height;
 @color3
 uniform vec3 fog_color;
 @color3
@@ -201,28 +203,25 @@ vec3 uncharted2_tonemap(vec3 x) {
 }
 
 void main() {
-    vec2 xy = -1.0 + 2.0*gl_FragCoord.xy/resolution.xy;
-    vec2 sp = xy*vec2(resolution.x/resolution.y,1.0);
+    vec2 xy = -1.0 + 2.0 * gl_FragCoord.xy / resolution.xy;
+    vec2 uv = xy * vec2(resolution.x / resolution.y, 1.0);
 
     // camera setup
-    float cr = 0.18 * sin(-0.1);
+    float cr = 0.0;
 #ifdef ANIMATE
     vec3 ro = vec3(1000.0, 250.0, cos(time * .25) * 1000.0);
 #else
     vec3 ro = vec3(1000.0, 250.0, 1000.0);
 #endif
 
-    vec3 ta = vec3(0.0, 0.0, 0.0);
-    mat3 cam = set_camera(ro, ta, cr);
-
     // light
     vec3 light1 = normalize(vec3(light_x, light_y, light_z));
 
     // generate ray
-    vec3 rd = cam * normalize(vec3(sp.xy, 1.0));
+    vec3 rd = view(ro) * normalize(vec3(uv.xy, 1.0));
 
-    // background
-    vec3 bgcol = atmosphere(rd, vec3(0.0, PLANET_RADIUS, 0), light1, SUN_INTENSITY);
+    // sky
+    vec3 sky_color = atmosphere(rd, vec3(0.0, PLANET_RADIUS + height, 0), light1, SUN_INTENSITY);
 
     // raymarch
     float tmin = 10.0;
@@ -231,7 +230,7 @@ void main() {
     float sundotc = clamp(dot(rd, light1), 0.0, 1.0);
 
     vec2 res = intersect(ro, rd, tmin, tmax);
-    vec3 col = background_color;;
+    vec3 col = background_color;
 
     // mountains
     float depth = res.x;
@@ -247,10 +246,10 @@ void main() {
 
     // sun scatter
     float sun_halo = pow(sundotc, 16.0);
-    col += halo * sun_halo * (1.0 - exp(-sun_depth_range * depth * depth));
+    //col += halo * sun_halo * (1.0 - exp(-sun_depth_range * depth * depth));
 
     // background
-    col = mix(col, bgcol, .5);
+    col = mix(col, sky_color, 0.5);
 
     // Apply exposure
     float luminance = 5e-5;
