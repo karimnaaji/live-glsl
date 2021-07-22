@@ -78,17 +78,18 @@ vec3 atmosphere(vec3 ray_dir, vec3 ray_origin, vec3 sun_position, float sun_inte
     vec3 scatter_r = vec3(0.0);
     vec3 scatter_m = vec3(0.0);
 
-    float ray_end = 1e20;
-    vec3 intersection_planet = ray_sphere_intersection(ray_origin, ray_dir, PLANET_RADIUS);
-    ray_end = intersection_planet.z < 0.0 ? 0.0 : min(intersection_planet.x, intersection_planet.y);
-
-    float ray_start = 0.0;
     vec3 intersection_atmosphere = ray_sphere_intersection(ray_origin, ray_dir, ATMOSPHERE_RADIUS);
-    ray_start = intersection_atmosphere.z < 0.0 ? 1e20 : min(intersection_atmosphere.x, intersection_atmosphere.y);
-
-    if (intersection_atmosphere.z > 0.0 && intersection_planet.z < 0.0) {
-        ray_end = max(intersection_atmosphere.x, intersection_atmosphere.y);
+    if ((intersection_atmosphere.x < 0.0 && intersection_atmosphere.y < 0.0) || intersection_atmosphere.z < 0.0) {
+        return vec3(0.0);
     }
+    intersection_atmosphere.x = max(intersection_atmosphere.x, 0.0);
+
+    vec3 intersection_planet = ray_sphere_intersection(ray_origin, ray_dir, PLANET_RADIUS);
+    bool intersect_planet = (intersection_planet.x > 0.0 && intersection_planet.y > 0.0 && intersection_planet.z > 0.0);
+
+    float ray_end = intersect_planet ? intersection_planet.x : intersection_atmosphere.y;
+    float ray_start = intersection_atmosphere.x;
+
     ray_origin += ray_dir * ray_start;
     float step_len = (ray_end - ray_start) / float(SAMPLE_STEPS);
     for (int i = 0; i < SAMPLE_STEPS; ++i) {
