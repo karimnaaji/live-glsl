@@ -15,8 +15,8 @@ precision highp float;
 #define DENSITY_HEIGHT_SCALE_M  1200.0
 #define PLANET_RADIUS           6360e3
 #define ATMOSPHERE_RADIUS       6420e3
-#define SAMPLE_STEPS            10
-#define DENSITY_STEPS           10
+#define SAMPLE_STEPS            16
+#define DENSITY_STEPS           4
 
 @slider1(0.0, 3.1415)
 uniform float u_theta;
@@ -24,10 +24,12 @@ uniform float u_theta;
 uniform float u_phi;
 @slider1(0.0, 90.0)
 uniform float u_fov;
-@slider1(0.3, 50.0)
+@slider1(0.01, 50.0)
 uniform float u_altitude;
 @slider1(-3.14, 3.14)
 uniform float u_rot_x;
+@slider3(-1.0, 1.0)
+uniform vec3 u_sun_position;
 
 vec3 ray_sphere_intersection(vec3 orig, vec3 dir, float radius) {
     float a = dot(dir, dir);
@@ -170,7 +172,7 @@ void main() {
         0.0
     );
 
-    color = atmosphere(normalize(ray_dir), position, normalize(sun_position), 25.0);
+    color = atmosphere(normalize(ray_dir), position, normalize(u_sun_position), 25.0);
 
     float luminance = 5e-5;
     float white_scale = 1.1;
