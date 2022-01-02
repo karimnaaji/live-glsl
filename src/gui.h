@@ -4,10 +4,8 @@
 #include <string>
 #include <memory>
 #include <cassert>
+#include <cstring>
 #include "glm.hpp"
-
-#define FONT_PATH1 "/Library/Fonts/Arial.ttf"
-#define FONT_PATH2 "/Library/Fonts/Arial Unicode.ttf"
 
 struct GLFWwindow;
 

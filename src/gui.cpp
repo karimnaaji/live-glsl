@@ -1,5 +1,8 @@
 #include "gui.h"
 
+#include "defines.h"
+#include "arial.ttf.h"
+
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
@@ -72,9 +75,8 @@ void GUIInit(GLFWwindow* window_handle) {
     style.Colors[ImGuiCol_PopupBg]               = ImVec4(0.20f, 0.20f, 0.20f, 0.50f);
 
     ImGuiIO& io = ImGui::GetIO();
-    if (!io.Fonts->AddFontFromFileTTF(FONT_PATH2, 15)) {
-        io.Fonts->AddFontFromFileTTF(FONT_PATH1, 15);
-    }
+    ImFont* font = io.Fonts->AddFontFromMemoryTTF(arial_ttf, ARRAY_LENGTH(arial_ttf), 15);
+    assert(font != nullptr);
 }
 
 bool GUINewFrame(std::vector<GUIComponent>& gui_components) {

@@ -16,6 +16,8 @@
 #define FONT_SIZE 32
 
 #include "gui.h"
+#include "arial.ttf.h"
+#include "defines.h"
 
 struct ScreenLog {
     FONScontext* FontContext;
@@ -231,10 +233,7 @@ ScreenLog ScreenLogCreate(float pixel_density) {
     ScreenLog screen_log;
     screen_log.LogBuffered = false;
     screen_log.FontContext = glfonsCreate(512, 512, FONS_ZERO_TOPLEFT);
-    int font = fonsAddFont(screen_log.FontContext, "sans", FONT_PATH1);
-    if (font == FONS_INVALID) {
-        font = fonsAddFont(screen_log.FontContext, "sans", FONT_PATH2); 
-    }
+    int font = fonsAddFontMem(screen_log.FontContext, "sans", arial_ttf, ARRAY_LENGTH(arial_ttf), 1);
     assert(font != FONS_INVALID &&  "Could not load font Arial");
     fonsSetSize(screen_log.FontContext, FONT_SIZE * pixel_density);
     fonsSetFont(screen_log.FontContext, font);
