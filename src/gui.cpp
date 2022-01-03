@@ -75,7 +75,23 @@ void GUIInit(GLFWwindow* window_handle) {
     style.Colors[ImGuiCol_PopupBg]               = ImVec4(0.20f, 0.20f, 0.20f, 0.50f);
 
     ImGuiIO& io = ImGui::GetIO();
-    ImFont* font = io.Fonts->AddFontFromMemoryTTF(arial_ttf, ARRAY_LENGTH(arial_ttf), 15);
+    ImFontConfig font_config;
+    font_config.FontData = NULL;
+    font_config.FontDataSize = 0;
+    font_config.FontDataOwnedByAtlas = false;
+    font_config.FontNo = 0;
+    font_config.SizePixels = 0.0f;
+    font_config.OversampleH = 3;
+    font_config.OversampleV = 1;
+    font_config.PixelSnapH = false;
+    font_config.GlyphExtraSpacing = ImVec2(0.0f, 0.0f);
+    font_config.GlyphRanges = NULL;
+    font_config.MergeMode = false;
+    font_config.MergeGlyphCenterV = false;
+    font_config.DstFont = NULL;
+    std::memset(font_config.Name, 0, sizeof(font_config.Name));
+
+    ImFont* font = io.Fonts->AddFontFromMemoryTTF(arial_ttf, ARRAY_LENGTH(arial_ttf), 15, &font_config);
     assert(font != nullptr);
 }
 

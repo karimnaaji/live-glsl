@@ -45,7 +45,16 @@ struct GUIComponent {
         std::memset(this, 0x0, sizeof(GUIComponent));
     }
     GUIComponent(const GUIComponent& other) {
-        std::memcpy(this, &other, sizeof(GUIComponent));
+        Type = other.Type;
+        UniformType = other.UniformType;
+        UniformName = other.UniformName;
+        IsInUse = other.IsInUse;
+        SliderRange = other.SliderRange;
+        DragRange = other.DragRange;
+        Vec1 = other.Vec1;
+        Vec2 = other.Vec2;
+        Vec3 = other.Vec3;
+        Vec4 = other.Vec4;
     }
     EGUIComponentType Type;
     EGUIUniformType UniformType;

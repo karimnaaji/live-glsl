@@ -68,7 +68,9 @@ std::vector<std::string> SplitString(const std::string& s, char delim) {
     std::stringstream ss(s);
     std::string item;
     while (std::getline(ss, item, delim)) {
-        elems.push_back(item);
+        if (!item.empty() && item != ";") {
+            elems.push_back(item);
+        }
     }
     return elems;
 }
@@ -178,7 +180,10 @@ bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_li
         return false;
     }
 
-    out_component.UniformName = uniform_tokens[2].substr(0, uniform_tokens[2].size() - 1);
+    // Trim semicolon ';'
+    while (uniform_tokens.back().back() == ';')
+        uniform_tokens.back().pop_back();
+    out_component.UniformName = uniform_tokens.back();
 
     if (out_component.UniformName == "time" || out_component.UniformName == "resolution") {
         ReportError("GUI type not allowed for builtin uniforms");
@@ -567,8 +572,6 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
         else
             glfwWaitEvents();
     }
-
-    glfwTerminate();
 }
 
 void FileWatcherThread(std::string shader_source_path) {
@@ -607,6 +610,8 @@ int main(int argc, char **argv) {
     file_watcher_thread.join();
 
     LiveGLSLDestroy(LiveGLSLInstance);
+
+    glfwTerminate();
 
     return EXIT_SUCCESS;
 }
