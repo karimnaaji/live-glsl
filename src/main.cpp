@@ -153,7 +153,7 @@ bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_li
             out_component.DragRange.End = 1.0f;
         }
     }
-    
+
     std::vector<std::string> uniform_tokens = SplitString(uniform_line,  ' ');
     if (uniform_tokens.size() != 3) {
         ReportError("GUI associated with invalid uniform");
@@ -481,7 +481,7 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
 }
 
 void LiveGLSLDestroy(LiveGLSL* live_glsl) {
-    if (live_glsl->VertexBufferId) 
+    if (live_glsl->VertexBufferId)
         glDeleteBuffers(1, &live_glsl->VertexBufferId);
     if (live_glsl->VaoId)
         glDeleteVertexArrays(1, &live_glsl->VaoId);
@@ -504,7 +504,7 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
         ShaderFileChanged.store(false);
 
         if (!read_file_error.empty()) {
-            ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());            
+            ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());
         }
 
         double current_time = glfwGetTime();
@@ -528,12 +528,21 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
             assert(ShaderProgramInstance.Handle != 0);
             glUseProgram(ShaderProgramInstance.Handle);
 
+            double x, y;
+            glfwGetCursorPos(live_glsl.GLFWWindowHandle, &x, &y);
+            x *= live_glsl.PixelDensity;
+            y *= live_glsl.PixelDensity;
+
+            int mouse_left_state = glfwGetMouseButton(live_glsl.GLFWWindowHandle, GLFW_MOUSE_BUTTON_LEFT);
+
             glBindBuffer(GL_ARRAY_BUFFER, live_glsl.VertexBufferId);
             float width = live_glsl.WindowWidth * live_glsl.PixelDensity;
             float height = live_glsl.WindowHeight * live_glsl.PixelDensity;
             glViewport(0, 0, width, height);
             glUniform2f(glGetUniformLocation(ShaderProgramInstance.Handle, "resolution"), width, height);
             glUniform1f(glGetUniformLocation(ShaderProgramInstance.Handle, "time"), glfwGetTime());
+            // Mouse position, x relative to left, y relative to top
+            glUniform3f(glGetUniformLocation(ShaderProgramInstance.Handle, "mouse"), x, y, mouse_left_state == GLFW_PRESS ? 1.0f : 0.0f);
 
             for (const GUIComponent& gui_component : live_glsl.GUIComponents) {
                 GLuint uniform_location = glGetUniformLocation(ShaderProgramInstance.Handle, gui_component.UniformName.c_str());
