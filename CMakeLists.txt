@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.10)
 project(live-glsl)
 
 set(EXECUTABLE_NAME live-glsl.out)
@@ -11,6 +11,7 @@ include_directories(${CMAKE_SOURCE_DIR}/deps/glm)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glm/gtc)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/include)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/deps)
+include_directories(${CMAKE_SOURCE_DIR}/deps/getopt/include)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glm)
 
@@ -24,6 +25,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glfw)
 add_executable(${EXECUTABLE_NAME} 
 	${CMAKE_SOURCE_DIR}/src/main.cpp
 	${CMAKE_SOURCE_DIR}/src/gui.cpp
-	${CMAKE_SOURCE_DIR}/deps/glfw/deps/glad.c)
+	${CMAKE_SOURCE_DIR}/deps/glfw/deps/glad.c
+	${CMAKE_SOURCE_DIR}/deps/getopt/src/getopt.c)
 
 target_link_libraries(${EXECUTABLE_NAME} glfw ${GLFW_LIBRARIES})
