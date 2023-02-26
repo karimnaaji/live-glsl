@@ -9,13 +9,16 @@
 #include <unistd.h>
 #include <cassert>
 
-#include "getopt/getopt.h"
+#include <getopt/getopt.h>
 
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #define GLFONTSTASH_IMPLEMENTATION
-#include "glfontstash.h"
+#include <glfontstash.h>
 #define FONT_SIZE 32
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
 
 #include "gui.h"
 #include "arial.ttf.h"
@@ -38,9 +41,17 @@ struct ShaderProgram {
     }
 };
 
+struct Arguments {
+    std::string Input;
+    std::string Output;
+    uint32_t Width = 800;
+    uint32_t Height = 600;
+};
+
 struct LiveGLSL {
     std::vector<GUIComponent> GUIComponents;
     GLFWwindow* GLFWWindowHandle;
+    Arguments Args;
     GLuint VertexBufferId;
     GLuint VaoId;
     GLint PositionVertexAttribute;
@@ -62,18 +73,9 @@ enum Option {
 static const getopt_option_t option_list[] = {
     { "input",      'i', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_INPUT,        "input source file", "GLSL file" },
     { "output",     'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,       "output source file", "PNG file" },
-    { "width",      'w', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_WIDTH,        "viewport width, in pixels" },
-    { "height",     'h', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_HEIGHT,       "viewport height, in pixels" },
+    { "width",      'w', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_WIDTH,        "viewport width, in pixels (default 800)" },
+    { "height",     'h', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_HEIGHT,       "viewport height, in pixels (default 600)" },
     GETOPT_OPTIONS_END
-};
-
-struct Arguments {
-    std::string Input;
-    std::string Output;
-    uint32_t Width;
-    uint32_t Height;
-    bool Verbose = false;
-    std::string IputFile;
 };
 
 static std::atomic<bool> ShaderFileChanged;
@@ -412,13 +414,14 @@ void ShaderProgramDetach(const ShaderProgram& shader_program) {
         glDetachShader(shader_program.FragmentShaderHandle, GL_FRAGMENT_SHADER);
 }
 
-LiveGLSL* LiveGLSLCreate(std::string shader_path) {
+LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     LiveGLSL* live_glsl = new LiveGLSL();
     live_glsl->ShaderCompiled = false;
-    live_glsl->ShaderPath = shader_path;
-    live_glsl->WindowWidth = 800;
-    live_glsl->WindowHeight = 600;
+    live_glsl->ShaderPath = args.Input;
+    live_glsl->WindowWidth = args.Width;
+    live_glsl->WindowHeight = args.Height;
     live_glsl->IsContinuousRendering = false;
+    live_glsl->Args = args;
 
     // Init GLFW Window
     {
@@ -473,7 +476,7 @@ LiveGLSL* LiveGLSLCreate(std::string shader_path) {
     {
         std::string shader_source;
         std::string read_file_error;
-        if (!ReadShaderFile(shader_path, shader_source, live_glsl->GUIComponents, read_file_error)) {
+        if (!ReadShaderFile(args.Input, shader_source, live_glsl->GUIComponents, read_file_error)) {
             ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());
         } else {
             live_glsl->ShaderCompiled = ShaderProgramBuild(ShaderProgramInstance, shader_source, DefaultVertexShader);
@@ -514,7 +517,7 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
     delete live_glsl;
 }
 
-void LiveGLSLRender(LiveGLSL& live_glsl) {
+int LiveGLSLRender(LiveGLSL& live_glsl) {
     double previous_time = glfwGetTime();
     uint32_t frame_count = 0;
     bool sixty_fps = false;
@@ -540,6 +543,8 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
             frame_count = 0;
             previous_time = current_time;
         }
+        uint32_t width = live_glsl.WindowWidth * live_glsl.PixelDensity;
+        uint32_t height = live_glsl.WindowHeight * live_glsl.PixelDensity;
 
         if (live_glsl.ShaderCompiled) {
             for (GUIComponent& gui_component : live_glsl.GUIComponents) {
@@ -562,8 +567,6 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
             int mouse_left_state = glfwGetMouseButton(live_glsl.GLFWWindowHandle, GLFW_MOUSE_BUTTON_LEFT);
 
             glBindBuffer(GL_ARRAY_BUFFER, live_glsl.VertexBufferId);
-            float width = live_glsl.WindowWidth * live_glsl.PixelDensity;
-            float height = live_glsl.WindowHeight * live_glsl.PixelDensity;
             glViewport(0, 0, width, height);
             glUniform2f(glGetUniformLocation(ShaderProgramInstance.Handle, "resolution"), width, height);
             glUniform1f(glGetUniformLocation(ShaderProgramInstance.Handle, "time"), glfwGetTime());
@@ -593,13 +596,31 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
 
             live_glsl.IsContinuousRendering = glGetUniformLocation(ShaderProgramInstance.Handle, "time") != -1;
 
-            if (live_glsl.IsContinuousRendering)
-                ScreenLogRenderFrameStatus(ScreenLogInstance, width, sixty_fps, live_glsl.PixelDensity);
+            if (live_glsl.Args.Output.empty()) {
+                if (live_glsl.IsContinuousRendering) {
+                    ScreenLogRenderFrameStatus(ScreenLogInstance, width, sixty_fps, live_glsl.PixelDensity);
+                }
 
-            if (draw_gui)
-                GUIRender();
+                if (draw_gui) {
+                    GUIRender();
+                }
+            }
         }
-        ScreenLogRender(ScreenLogInstance, live_glsl.PixelDensity);
+
+        if (!live_glsl.Args.Output.empty()) {
+            unsigned char* pixels = new unsigned char[3 * width * height];
+            glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+            int res = stbi_write_png(live_glsl.Args.Output.c_str(), width, height, 3, pixels, 3 * width);
+            delete[] pixels;
+            if (res == 0) {
+                printf("Failed to write image to file: %s\n", live_glsl.Args.Output.c_str());
+                return EXIT_FAILURE;
+            }
+            return EXIT_SUCCESS;
+        } else {
+            ScreenLogRender(ScreenLogInstance, live_glsl.PixelDensity);    
+        }
 
         glfwSwapBuffers(live_glsl.GLFWWindowHandle);
         if (live_glsl.IsContinuousRendering)
@@ -607,6 +628,8 @@ void LiveGLSLRender(LiveGLSL& live_glsl) {
         else
             glfwWaitEvents();
     }
+
+    return EXIT_SUCCESS;
 }
 
 void FileWatcherThread(std::string shader_source_path) {
@@ -675,13 +698,13 @@ int main(int argc, const char **argv) {
 
     ShaderFileChanged.store(false);
     ShouldQuit.store(false);
-    LiveGLSLInstance = LiveGLSLCreate(args.Input);
+    LiveGLSLInstance = LiveGLSLCreate(args);
     if (!LiveGLSLInstance) {
         return EXIT_FAILURE;
     }
 
     std::thread file_watcher_thread(FileWatcherThread, args.Input);
-    LiveGLSLRender(*LiveGLSLInstance);
+    bool res = LiveGLSLRender(*LiveGLSLInstance);
     ShouldQuit.store(true);
     file_watcher_thread.join();
 
@@ -689,5 +712,5 @@ int main(int argc, const char **argv) {
 
     glfwTerminate();
 
-    return EXIT_SUCCESS;
+    return res;
 }
