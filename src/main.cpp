@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <cassert>
 
+#include "getopt/getopt.h"
+
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 #define GLFONTSTASH_IMPLEMENTATION
@@ -48,6 +50,30 @@ struct LiveGLSL {
     int WindowWidth;
     int WindowHeight;
     float PixelDensity;
+};
+
+enum Option {
+    OPTION_INPUT = 1,
+    OPTION_OUTPUT,
+    OPTION_WIDTH,
+    OPTION_HEIGHT
+};
+
+static const getopt_option_t option_list[] = {
+    { "input",      'i', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_INPUT,        "input source file", "GLSL file" },
+    { "output",     'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,       "output source file", "PNG file" },
+    { "width",      'w', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_WIDTH,        "viewport width, in pixels" },
+    { "height",     'h', GETOPT_OPTION_TYPE_NO_ARG,     0, OPTION_HEIGHT,       "viewport height, in pixels" },
+    GETOPT_OPTIONS_END
+};
+
+struct Arguments {
+    std::string Input;
+    std::string Output;
+    uint32_t Width;
+    uint32_t Height;
+    bool Verbose = false;
+    std::string IputFile;
 };
 
 static std::atomic<bool> ShaderFileChanged;
@@ -600,20 +626,61 @@ void FileWatcherThread(std::string shader_source_path) {
     }
 }
 
-int main(int argc, char **argv) {
-    if (argc < 2) {
-        fprintf(stderr, "Please provide the fragment shader source path\n");
-        exit(EXIT_FAILURE);
+bool ParseArguments(int argc, const char** argv, Arguments& args) {
+    getopt_context_t ctx;
+    if (getopt_create_context(&ctx, argc, argv, option_list) < 0) {
+        printf( "error while creating getopt ctx, bad options-list?" );
+        return false;
+    }
+    int opt = 0;
+    while ((opt = getopt_next(&ctx)) != -1) {
+        switch (opt) {
+            case '+':
+                printf("live-glsl: got argument without flag: %s\n", ctx.current_opt_arg);
+                return false;
+            case '?':
+                printf("live-glsl: unknown flag %s\n", ctx.current_opt_arg);
+                return false;
+            case '!':
+                printf("live-glsl: invalid use of flag %s\n", ctx.current_opt_arg);
+                return false;
+            case OPTION_INPUT:
+                args.Input = ctx.current_opt_arg;
+                break;
+            case OPTION_OUTPUT:
+                args.Output = ctx.current_opt_arg;
+                break;
+            case OPTION_WIDTH:
+                args.Width = atoi(ctx.current_opt_arg);
+                break;
+            case OPTION_HEIGHT:
+                args.Height = atoi(ctx.current_opt_arg);
+                break;
+            default:
+                break;
+        }
+    }
+    if (args.Input.empty()) {
+        printf("live-glsl: no input file (--input [path])\n");
+        return false;
+    }
+    return true;
+}
+
+int main(int argc, const char **argv) {
+    Arguments args;
+    if (!ParseArguments(argc, argv, args)) {
+        return EXIT_FAILURE;
     }
 
     ShaderFileChanged.store(false);
     ShouldQuit.store(false);
-    std::string shader_source_path = std::string(argv[1]);
-    LiveGLSLInstance = LiveGLSLCreate(shader_source_path);
-    if (!LiveGLSLInstance)
-        return 0;
+    LiveGLSLInstance = LiveGLSLCreate(args.Input);
+    if (!LiveGLSLInstance) {
+        return EXIT_FAILURE;
+    }
 
-    std::thread file_watcher_thread(FileWatcherThread, shader_source_path);
+    std::thread file_watcher_thread(FileWatcherThread, args.Input);
     LiveGLSLRender(*LiveGLSLInstance);
     ShouldQuit.store(true);
     file_watcher_thread.join();

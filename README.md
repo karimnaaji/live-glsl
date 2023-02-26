@@ -13,7 +13,7 @@ build and run
 ```
 
 ```bash
-> ./live-glsl.out fragment_shader_to_watch
+> ./live-glsl.out --input fragment_shader_to_watch
 ```
 
 example
