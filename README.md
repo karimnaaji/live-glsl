@@ -1,15 +1,14 @@
 live-glsl
 ---------
 
-A dynamic and lightweight shader coding tool. It dynamically reloads your shader, does on-screen error reporting and allows for GUI elements to be added from a shader syntax; allowing for uniform value tweaks.
+A dynamic and lightweight shader coding tool. It dynamically reloads your shader, does on-screen error reporting and allows for GUI elements to be added from a shader syntax; allowing to quickly experiment with value tweaks.
 
 ![](images/screenshot.png)
 
 build and run
 -------------
 ```
-> cmake . -Bbuild
-> cmake --build build
+> cmake . -Bbuild && cmake --build build
 ```
 
 ```bash
@@ -25,6 +24,7 @@ builtin uniforms
 ----------------
  + time : float
  + resolution : vec2
+ + mouse : vec2
 
 GUI elements
 ------------

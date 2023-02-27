@@ -48,13 +48,25 @@ struct Arguments {
     uint32_t Height = 600;
 };
 
+struct RenderPass {
+    ShaderProgram Program;
+    std::string ShaderSource;
+    std::string Input;
+    std::string Output;
+    bool IsMain {false};
+    uint32_t Width {0};
+    uint32_t Height {0};
+    GLuint FBO {0};
+    GLuint Texture {0};
+};
+
 struct LiveGLSL {
     std::vector<GUIComponent> GUIComponents;
+    std::vector<RenderPass> RenderPasses;
     GLFWwindow* GLFWWindowHandle;
     Arguments Args;
     GLuint VertexBufferId;
     GLuint VaoId;
-    GLint PositionVertexAttribute;
     std::string ShaderPath;
     bool ShaderCompiled;
     bool IsContinuousRendering;
@@ -83,7 +95,6 @@ static std::atomic<bool> ShouldQuit;
 static ScreenLog ScreenLogInstance;
 struct LiveGLSL;
 static LiveGLSL* LiveGLSLInstance;
-static ShaderProgram ShaderProgramInstance;
 static const GLchar* DefaultVertexShader = R"END(
 in vec2 position;
 void main() {
@@ -226,7 +237,7 @@ bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_li
     return true;
 }
 
-bool ReadShaderFile(const std::string& path, std::string& out, std::vector<GUIComponent>& out_components, std::string& read_file_error) {
+bool ReadShaderFile(const std::string& path, std::vector<RenderPass>& render_passes, std::vector<GUIComponent>& out_components, std::string& read_file_error) {
     std::ifstream file;
     std::string curr_buffer;
     std::string prev_buffer;
@@ -240,6 +251,13 @@ bool ReadShaderFile(const std::string& path, std::string& out, std::vector<GUICo
     std::vector<GUIComponent> previous_components = out_components;
     out_components.clear();
     uint32_t line_number = 0;
+    RenderPass* pass = nullptr;
+    std::string shader_source;
+    auto ReportError = [&](const std::string& error, uint32_t line_number) {
+        char buffer[33];
+        sprintf(buffer, "%d", line_number);
+        read_file_error = error + " at line " + buffer;
+    };
     while (!file.eof()) {
         getline(file, curr_buffer);
         uint32_t current_char = 0;
@@ -247,16 +265,65 @@ bool ReadShaderFile(const std::string& path, std::string& out, std::vector<GUICo
             ++current_char;
         }
         if (prev_buffer[current_char] == '@') {
-            GUIComponent component;
-            std::string gui_component_line = prev_buffer.substr(current_char + 1, std::string::npos);
-            if (!ParseGUIComponent(line_number, gui_component_line, curr_buffer, previous_components, component, read_file_error))
-                return false;
-            out_components.push_back(component);
+            if (prev_buffer.substr(current_char + 1, current_char + 8) == "pass_end") {
+                pass->ShaderSource = shader_source;
+                shader_source = "";
+                pass = nullptr;
+            } else if (prev_buffer.substr(current_char + 1, current_char + 4) == "pass") {
+                render_passes.emplace_back();
+                pass = &render_passes.back();
+                
+                char input_name[64] = {0};
+                char output_name[64] = {0};
+                uint32_t width = 0;
+                uint32_t height = 0;
+                std::string render_pass_args = prev_buffer.substr(current_char + 5, std::string::npos);
+                int scanned = 0;
+                scanned = sscanf(render_pass_args.c_str(), "(%[^,], %[^,], %d, %d)", output_name, input_name, &width, &height);
+                if (scanned != 4) {
+                    width = height = 0;
+                    memset(input_name, 0x0, sizeof(input_name));
+                    memset(output_name, 0x0, sizeof(output_name));
+                    scanned = sscanf(render_pass_args.c_str(), "(%[^,], %d, %d)", output_name, &width, &height);
+                    if (scanned != 3) {
+                        width = height = 0;
+                        memset(input_name, 0x0, sizeof(input_name));
+                        memset(output_name, 0x0, sizeof(output_name));
+                        scanned = sscanf(render_pass_args.c_str(), "(%[^,], %[^)])", output_name, input_name);
+                        if (scanned != 2) {
+                            std::string error;
+                            error += "Render pass format should be @pass(output, input, width, height), @pass(output, input) or @pass(output, width, height)";
+                            ReportError(error, line_number);
+                            return false;
+                        }
+                    }
+                }
+                pass->Input = input_name;
+                pass->Output = output_name;
+                pass->Width = width;
+                pass->Height = height;
+                if (pass->Output == "main") {
+                    pass->IsMain = true;
+                }
+            } else {
+                GUIComponent component;
+                std::string gui_component_line = prev_buffer.substr(current_char + 1, std::string::npos);
+                if (!ParseGUIComponent(line_number, gui_component_line, curr_buffer, previous_components, component, read_file_error)) {
+                    return false;
+                }
+                out_components.push_back(component);
+            }
         }
-        if (curr_buffer[current_char] != '@')
-            out += curr_buffer + "\n";
+        if (curr_buffer[current_char] != '@') {
+            shader_source += curr_buffer + "\n";
+        }
         prev_buffer = curr_buffer;
         ++line_number;
+    }
+    if (render_passes.empty()) {
+        render_passes.emplace_back();
+        render_passes.back().ShaderSource = shader_source;
+        render_passes.back().IsMain = true;
     }
     file.close();
     return true;
@@ -301,6 +368,7 @@ void ScreenLogRender(ScreenLog& screen_log, float pixel_density) {
             screen_log.LogBuffered = true;
         }
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfonsUpdateViewport(screen_log.FontContext);
         float y_offset = FONT_SIZE * pixel_density + FONT_SIZE * pixel_density * 0.25f;
@@ -414,6 +482,43 @@ void ShaderProgramDetach(const ShaderProgram& shader_program) {
         glDetachShader(shader_program.FragmentShaderHandle, GL_FRAGMENT_SHADER);
 }
 
+void DestroyRenderPasses(std::vector<RenderPass>& render_passes) {
+    for (auto& render_pass : render_passes) {
+        ShaderProgramDetach(render_pass.Program);
+        if (render_pass.Texture != 0) {
+            glDeleteTextures(1, &render_pass.Texture);
+        }
+        if (render_pass.FBO != 0) {
+            glDeleteFramebuffers(1, &render_pass.FBO);
+        }
+    }
+    render_passes.clear();
+}
+
+bool BuildRenderPasses(std::vector<RenderPass>& render_passes, float pixel_density) {
+    for (auto& render_pass : render_passes) {
+        if (!ShaderProgramBuild(render_pass.Program, render_pass.ShaderSource, DefaultVertexShader)) {
+            return false;
+        }
+        if (!render_pass.IsMain) {
+            glGenFramebuffers(1, &render_pass.FBO);
+            glBindFramebuffer(GL_FRAMEBUFFER, render_pass.FBO);
+            glGenTextures(1, &render_pass.Texture);
+            glBindTexture(GL_TEXTURE_2D, render_pass.Texture);
+            assert(render_pass.Width != 0);
+            assert(render_pass.Height != 0);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, render_pass.Width * pixel_density, render_pass.Height * pixel_density, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_pass.Texture, 0);
+            assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    }
+    return true;
+}
+
 LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     LiveGLSL* live_glsl = new LiveGLSL();
     live_glsl->ShaderCompiled = false;
@@ -474,12 +579,13 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
 
     // Compile shader
     {
-        std::string shader_source;
         std::string read_file_error;
-        if (!ReadShaderFile(args.Input, shader_source, live_glsl->GUIComponents, read_file_error)) {
+        std::vector<RenderPass> render_passes;
+        if (!ReadShaderFile(args.Input, render_passes, live_glsl->GUIComponents, read_file_error)) {
             ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());
         } else {
-            live_glsl->ShaderCompiled = ShaderProgramBuild(ShaderProgramInstance, shader_source, DefaultVertexShader);
+            live_glsl->ShaderCompiled = BuildRenderPasses(render_passes, live_glsl->PixelDensity);
+            live_glsl->RenderPasses = render_passes;
         }
     }
 
@@ -500,10 +606,14 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
         glGenBuffers(1, &live_glsl->VertexBufferId);
         glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-        live_glsl->PositionVertexAttribute = glGetAttribLocation(ShaderProgramInstance.Handle, "position");
-        glVertexAttribPointer(live_glsl->PositionVertexAttribute, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-        glEnableVertexAttribArray(live_glsl->PositionVertexAttribute);
+        
+        for (auto& render_pass : live_glsl->RenderPasses) {
+            if (render_pass.IsMain) {
+                GLint position_attrib = glGetAttribLocation(render_pass.Program.Handle, "position");
+                glVertexAttribPointer(position_attrib, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+                glEnableVertexAttribArray(position_attrib);
+            }
+        }
     }
 
     return live_glsl;
@@ -525,10 +635,14 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
     while (!glfwWindowShouldClose(live_glsl.GLFWWindowHandle)) {
         std::string shader_source;
         std::string read_file_error;
-        if (ShaderFileChanged && ReadShaderFile(live_glsl.ShaderPath, shader_source, live_glsl.GUIComponents, read_file_error)) {
-            ShaderProgramDetach(ShaderProgramInstance);
-            live_glsl.ShaderCompiled = ShaderProgramBuild(ShaderProgramInstance, shader_source, DefaultVertexShader);
-            glfwPostEmptyEvent();
+        if (ShaderFileChanged) {
+            std::vector<RenderPass> render_passes;
+            if (ReadShaderFile(live_glsl.ShaderPath, render_passes, live_glsl.GUIComponents, read_file_error)) {
+                DestroyRenderPasses(live_glsl.RenderPasses);
+                live_glsl.ShaderCompiled = BuildRenderPasses(render_passes, live_glsl.PixelDensity);
+                live_glsl.RenderPasses = render_passes;
+                glfwPostEmptyEvent();
+            }
         }
         ShaderFileChanged.store(false);
 
@@ -543,84 +657,109 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
             frame_count = 0;
             previous_time = current_time;
         }
-        uint32_t width = live_glsl.WindowWidth * live_glsl.PixelDensity;
-        uint32_t height = live_glsl.WindowHeight * live_glsl.PixelDensity;
+
+        double x, y;
+        glfwGetCursorPos(live_glsl.GLFWWindowHandle, &x, &y);
+        x *= live_glsl.PixelDensity;
+        y *= live_glsl.PixelDensity;
+
+        int mouse_left_state = glfwGetMouseButton(live_glsl.GLFWWindowHandle, GLFW_MOUSE_BUTTON_LEFT);
 
         if (live_glsl.ShaderCompiled) {
             for (GUIComponent& gui_component : live_glsl.GUIComponents) {
-                GLuint uniform_location = glGetUniformLocation(ShaderProgramInstance.Handle, gui_component.UniformName.c_str());
-                gui_component.IsInUse = uniform_location != -1;
+                gui_component.IsInUse = false;
+                for (const auto& render_pass : live_glsl.RenderPasses) {
+                    GLuint uniform_location = glGetUniformLocation(render_pass.Program.Handle, gui_component.UniformName.c_str());
+                    gui_component.IsInUse |= uniform_location != -1;
+                }
             }
 
             bool draw_gui = GUINewFrame(live_glsl.GUIComponents);
 
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            for (const auto& render_pass : live_glsl.RenderPasses) {
+                uint32_t width = render_pass.IsMain ? live_glsl.WindowWidth : render_pass.Width;
+                uint32_t height = render_pass.IsMain ? live_glsl.WindowHeight : render_pass.Height;
 
-            assert(ShaderProgramInstance.Handle != 0);
-            glUseProgram(ShaderProgramInstance.Handle);
+                width *= live_glsl.PixelDensity;
+                height *= live_glsl.PixelDensity;
 
-            double x, y;
-            glfwGetCursorPos(live_glsl.GLFWWindowHandle, &x, &y);
-            x *= live_glsl.PixelDensity;
-            y *= live_glsl.PixelDensity;
+                glBindFramebuffer(GL_FRAMEBUFFER, render_pass.FBO);
+                glClear(GL_COLOR_BUFFER_BIT);
 
-            int mouse_left_state = glfwGetMouseButton(live_glsl.GLFWWindowHandle, GLFW_MOUSE_BUTTON_LEFT);
+                assert(render_pass.Program.Handle != 0);
+                glUseProgram(render_pass.Program.Handle);
 
-            glBindBuffer(GL_ARRAY_BUFFER, live_glsl.VertexBufferId);
-            glViewport(0, 0, width, height);
-            glUniform2f(glGetUniformLocation(ShaderProgramInstance.Handle, "resolution"), width, height);
-            glUniform1f(glGetUniformLocation(ShaderProgramInstance.Handle, "time"), glfwGetTime());
-            // Mouse position, x relative to left, y relative to top
-            glUniform3f(glGetUniformLocation(ShaderProgramInstance.Handle, "mouse"), x, y, mouse_left_state == GLFW_PRESS ? 1.0f : 0.0f);
+                glBindBuffer(GL_ARRAY_BUFFER, live_glsl.VertexBufferId);
+                glViewport(0, 0, width, height);
+                glUniform2f(glGetUniformLocation(render_pass.Program.Handle, "resolution"), width, height);
+                glUniform1f(glGetUniformLocation(render_pass.Program.Handle, "time"), glfwGetTime());
+                // Mouse position, x relative to left, y relative to top
+                glUniform3f(glGetUniformLocation(render_pass.Program.Handle, "mouse"), x, y, mouse_left_state == GLFW_PRESS ? 1.0f : 0.0f);
 
-            for (const GUIComponent& gui_component : live_glsl.GUIComponents) {
-                GLuint uniform_location = glGetUniformLocation(ShaderProgramInstance.Handle, gui_component.UniformName.c_str());
-                switch (gui_component.UniformType) {
-                    case EGUIUniformTypeFloat:
-                    glUniform1f(uniform_location, gui_component.Vec1);
-                    break;
-                    case EGUIUniformTypeVec2:
-                    glUniform2f(uniform_location, gui_component.Vec2.x, gui_component.Vec2.y);
-                    break;
-                    case EGUIUniformTypeVec3:
-                    glUniform3f(uniform_location, gui_component.Vec3.x, gui_component.Vec3.y, gui_component.Vec3.z);
-                    break;
-                    case EGUIUniformTypeVec4:
-                    glUniform4f(uniform_location, gui_component.Vec4.x, gui_component.Vec4.y, gui_component.Vec4.z, gui_component.Vec4.w);
-                    break;
+                if (!render_pass.Input.empty()) {
+                    for (const auto& other : live_glsl.RenderPasses) {
+                        if (other.Output == render_pass.Input) {
+                            glActiveTexture(GL_TEXTURE0);
+                            glBindTexture(GL_TEXTURE_2D, other.Texture);
+                            glUniform1i(glGetUniformLocation(render_pass.Program.Handle, render_pass.Input.c_str()), 0);
+                        }
+                    }
                 }
+                
+                for (const GUIComponent& gui_component : live_glsl.GUIComponents) {
+                    GLuint uniform_location = glGetUniformLocation(render_pass.Program.Handle, gui_component.UniformName.c_str());
+                    switch (gui_component.UniformType) {
+                        case EGUIUniformTypeFloat:
+                            glUniform1f(uniform_location, gui_component.Vec1);
+                            break;
+                        case EGUIUniformTypeVec2:
+                            glUniform2f(uniform_location, gui_component.Vec2.x, gui_component.Vec2.y);
+                            break;
+                        case EGUIUniformTypeVec3:
+                            glUniform3f(uniform_location, gui_component.Vec3.x, gui_component.Vec3.y, gui_component.Vec3.z);
+                            break;
+                        case EGUIUniformTypeVec4:
+                            glUniform4f(uniform_location, gui_component.Vec4.x, gui_component.Vec4.y, gui_component.Vec4.z, gui_component.Vec4.w);
+                            break;
+                    }
+                }
+                
+                glBindVertexArray(live_glsl.VaoId);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
             }
 
-            glBindVertexArray(live_glsl.VaoId);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-
-            live_glsl.IsContinuousRendering = glGetUniformLocation(ShaderProgramInstance.Handle, "time") != -1;
+            live_glsl.IsContinuousRendering = false;
+            for (const auto& render_pass : live_glsl.RenderPasses) {
+                live_glsl.IsContinuousRendering |= glGetUniformLocation(render_pass.Program.Handle, "time") != -1;
+            }
 
             if (live_glsl.Args.Output.empty()) {
                 if (live_glsl.IsContinuousRendering) {
-                    ScreenLogRenderFrameStatus(ScreenLogInstance, width, sixty_fps, live_glsl.PixelDensity);
+                    ScreenLogRenderFrameStatus(ScreenLogInstance, live_glsl.WindowWidth * live_glsl.PixelDensity, sixty_fps, live_glsl.PixelDensity);
                 }
 
                 if (draw_gui) {
                     GUIRender();
                 }
             }
-        }
 
-        if (!live_glsl.Args.Output.empty()) {
-            unsigned char* pixels = new unsigned char[3 * width * height];
-            glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+            if (!live_glsl.Args.Output.empty()) {
+                uint32_t width = live_glsl.WindowWidth * live_glsl.PixelDensity;
+                uint32_t height = live_glsl.WindowHeight * live_glsl.PixelDensity;
+                unsigned char* pixels = new unsigned char[3 * width * height];
+                glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
-            int res = stbi_write_png(live_glsl.Args.Output.c_str(), width, height, 3, pixels, 3 * width);
-            delete[] pixels;
-            if (res == 0) {
-                printf("Failed to write image to file: %s\n", live_glsl.Args.Output.c_str());
-                return EXIT_FAILURE;
+                int res = stbi_write_png(live_glsl.Args.Output.c_str(), width, height, 3, pixels, 3 * width);
+                delete[] pixels;
+                if (res == 0) {
+                    printf("Failed to write image to file: %s\n", live_glsl.Args.Output.c_str());
+                    return EXIT_FAILURE;
+                }
+                return EXIT_SUCCESS;
             }
-            return EXIT_SUCCESS;
-        } else {
-            ScreenLogRender(ScreenLogInstance, live_glsl.PixelDensity);    
         }
+
+        ScreenLogRender(ScreenLogInstance, live_glsl.PixelDensity);
 
         glfwSwapBuffers(live_glsl.GLFWWindowHandle);
         if (live_glsl.IsContinuousRendering)
