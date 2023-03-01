@@ -272,7 +272,7 @@ bool ReadShaderFile(const std::string& path, std::vector<RenderPass>& render_pas
             } else if (prev_buffer.substr(current_char + 1, current_char + 4) == "pass") {
                 render_passes.emplace_back();
                 pass = &render_passes.back();
-                
+
                 char input_name[64] = {0};
                 char output_name[64] = {0};
                 uint32_t width = 0;
@@ -608,7 +608,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
         glGenBuffers(1, &live_glsl->VertexBufferId);
         glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        
+
         for (auto& render_pass : live_glsl->RenderPasses) {
             if (render_pass.IsMain) {
                 GLint position_attrib = glGetAttribLocation(render_pass.Program.Handle, "position");
@@ -695,6 +695,7 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
                 glViewport(0, 0, width, height);
                 glUniform2f(glGetUniformLocation(render_pass.Program.Handle, "resolution"), width, height);
                 glUniform1f(glGetUniformLocation(render_pass.Program.Handle, "time"), glfwGetTime());
+                glUniform1f(glGetUniformLocation(render_pass.Program.Handle, "pixel_ratio"), live_glsl.PixelDensity);
                 // Mouse position, x relative to left, y relative to top
                 glUniform3f(glGetUniformLocation(render_pass.Program.Handle, "mouse"), x, y, mouse_left_state == GLFW_PRESS ? 1.0f : 0.0f);
 
@@ -707,7 +708,7 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
                         }
                     }
                 }
-                
+
                 for (const GUIComponent& gui_component : live_glsl.GUIComponents) {
                     GLuint uniform_location = glGetUniformLocation(render_pass.Program.Handle, gui_component.UniformName.c_str());
                     switch (gui_component.UniformType) {
@@ -725,7 +726,7 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
                             break;
                     }
                 }
-                
+
                 glBindVertexArray(live_glsl.VaoId);
                 glDrawArrays(GL_TRIANGLES, 0, 6);
             }

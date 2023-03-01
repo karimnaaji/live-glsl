@@ -3,7 +3,7 @@ project(live-glsl)
 
 set(EXECUTABLE_NAME live-glsl.out)
 set(CMAKE_CXX_STANDARD 11)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wno-unused-result -Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wno-unused-result -Wno-deprecated-declarations")
 
 include_directories(${CMAKE_SOURCE_DIR}/deps)
 include_directories(${CMAKE_SOURCE_DIR}/deps/fontstash)
