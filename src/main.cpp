@@ -495,7 +495,7 @@ void DestroyRenderPasses(std::vector<RenderPass>& render_passes) {
     render_passes.clear();
 }
 
-bool BuildRenderPasses(std::vector<RenderPass>& render_passes, float pixel_density) {
+bool BuildRenderPasses(std::vector<RenderPass>& render_passes) {
     for (auto& render_pass : render_passes) {
         if (!ShaderProgramBuild(render_pass.Program, render_pass.ShaderSource, DefaultVertexShader)) {
             return false;
@@ -507,7 +507,7 @@ bool BuildRenderPasses(std::vector<RenderPass>& render_passes, float pixel_densi
             glBindTexture(GL_TEXTURE_2D, render_pass.Texture);
             assert(render_pass.Width != 0);
             assert(render_pass.Height != 0);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, render_pass.Width * pixel_density, render_pass.Height * pixel_density, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, render_pass.Width, render_pass.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -586,7 +586,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
         if (!ReadShaderFile(args.Input, render_passes, live_glsl->GUIComponents, read_file_error)) {
             ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());
         } else {
-            live_glsl->ShaderCompiled = BuildRenderPasses(render_passes, live_glsl->PixelDensity);
+            live_glsl->ShaderCompiled = BuildRenderPasses(render_passes);
             live_glsl->RenderPasses = render_passes;
         }
     }
@@ -641,7 +641,7 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
             std::vector<RenderPass> render_passes;
             if (ReadShaderFile(live_glsl.ShaderPath, render_passes, live_glsl.GUIComponents, read_file_error)) {
                 DestroyRenderPasses(live_glsl.RenderPasses);
-                live_glsl.ShaderCompiled = BuildRenderPasses(render_passes, live_glsl.PixelDensity);
+                live_glsl.ShaderCompiled = BuildRenderPasses(render_passes);
                 live_glsl.RenderPasses = render_passes;
                 glfwPostEmptyEvent();
             }
