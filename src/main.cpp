@@ -6,7 +6,13 @@
 #include <sstream>
 #include <vector>
 #include <sys/stat.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+#else
 #include <unistd.h>
+#endif
+
 #include <cassert>
 
 #include <getopt/getopt.h>
@@ -264,7 +270,7 @@ bool ReadShaderFile(const std::string& path, std::vector<RenderPass>& render_pas
         while (isspace(curr_buffer[current_char])) {
             ++current_char;
         }
-        if (prev_buffer[current_char] == '@') {
+        if (current_char < prev_buffer.length() && prev_buffer[current_char] == '@') {
             if (prev_buffer.substr(current_char + 1, current_char + 8) == "pass_end") {
                 pass->ShaderSource = shader_source;
                 shader_source = "";
@@ -774,8 +780,35 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
     return EXIT_SUCCESS;
 }
 
-void FileWatcherThread(std::string shader_source_path) {
-    char real_path[8096];
+#define MAX_PATH 8096
+
+#ifdef _WIN32
+void FileWatcherThread(const std::string& shader_source_path) {
+    char real_path[MAX_PATH];
+    DWORD length = GetFullPathNameA(shader_source_path.c_str(), MAX_PATH, real_path, nullptr);
+    if (length == 0 || length >= MAX_PATH) {
+        printf( "GetFullPathNameA call failed on path %s\n", shader_source_path.c_str());
+        return;
+    }
+    int last_changed = 0;
+    while (!ShouldQuit) {
+        WIN32_FILE_ATTRIBUTE_DATA file_attributes;
+        if (!GetFileAttributesExA(real_path, GetFileExInfoStandard, &file_attributes)) {
+            printf( "GetFileAttributesExA call failed on path %s\n", real_path);
+            return;
+        }
+        int current_changed = file_attributes.ftLastWriteTime.dwLowDateTime;
+        if (current_changed != last_changed) {
+            ShaderFileChanged.store(true);
+            last_changed = current_changed;
+            glfwPostEmptyEvent();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
+}
+#else
+void FileWatcherThread(const std::string& shader_source_path) {
+    char real_path[MAX_PATH];
     realpath(shader_source_path.c_str(), real_path);
     int last_changed;
     struct stat st;
@@ -790,6 +823,7 @@ void FileWatcherThread(std::string shader_source_path) {
         usleep(16000);
     }
 }
+#endif
 
 bool ParseArguments(int argc, const char** argv, Arguments& args) {
     getopt_context_t ctx;
@@ -832,7 +866,34 @@ bool ParseArguments(int argc, const char** argv, Arguments& args) {
     return true;
 }
 
+#if defined(_WIN32)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    std::vector<std::string> args_parsed;
+    std::string arg;
+    args_parsed.push_back("live-glsl.exe");
+    for (const char* p = lpCmdLine; *p != '\0'; ++p) {
+        if (*p == ' ' || *p == '\t') {
+            if (!arg.empty()) {
+                args_parsed.push_back(arg);
+                arg.clear();
+            }
+        } else {
+            arg += *p;
+        }
+    }
+    if (!arg.empty()) {
+        args_parsed.push_back(arg);
+    }
+
+    int argc = args_parsed.size();
+    const char** argv = new const char*[argc];
+    for (size_t i = 0; i < argc; ++i) {
+        argv[i] = args_parsed[i].c_str();
+    }
+#else
 int main(int argc, const char **argv) {
+#endif
+
     Arguments args;
     if (!ParseArguments(argc, argv, args)) {
         return EXIT_FAILURE;
@@ -853,6 +914,10 @@ int main(int argc, const char **argv) {
     LiveGLSLDestroy(LiveGLSLInstance);
 
     glfwTerminate();
+
+#ifdef _WIN32
+    delete[] argv;
+#endif
 
     return res;
 }
