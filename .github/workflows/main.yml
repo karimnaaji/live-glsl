@@ -15,7 +15,7 @@ jobs:
         - name: win64-package
           run: |
             cd build/bin
-            tar.exe -a -c -f live-glsl.zip assets live-glsl.exe
+            tar.exe -a -c -f live-glsl.zip live-glsl.exe
         - uses: actions/upload-artifact@v2
           with:
             name: live-glsl-win64
