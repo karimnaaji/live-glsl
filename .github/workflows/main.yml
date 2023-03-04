@@ -1,0 +1,71 @@
+name: build
+
+on:
+  [push]
+
+jobs:
+    windows-debug:
+        runs-on: windows-2019
+        steps:
+        - uses: actions/checkout@v1
+        - name: prepare
+          run: |
+            git submodule init
+            git submodule update
+        - name: win64-vstudio
+          run: |
+            cmake -Bbuild . -G "Visual Studio 16 2019"
+            cmake --build build -j
+        - name: win64-package
+          run: |
+            cd build/bin
+            tar.exe -a -c -f live-glsl.zip assets live-glsl.exe
+        - uses: actions/upload-artifact@v2
+          with:
+            name: live-glsl-win64
+            path: build/bin/live-glsl.zip
+    mac-release:
+        runs-on: macos-10.15
+        steps:
+        - uses: actions/checkout@v1
+        - name: prepare
+          run: |
+            brew install ninja
+            git submodule init
+            git submodule update
+        - name: osx-make
+          run: |
+            cmake -Bbuild . -G Ninja -DCMAKE_BUILD_TYPE=Release
+            cmake --build build -j
+        - name: osx-package
+          run: |
+            cd build
+            zip -vry live-glsl.zip live-glsl
+            cd ..
+        - uses: actions/upload-artifact@v2
+          with:
+            name: live-glsl-osx
+            path: build/live-glsl.zip
+    linux-debug:
+        runs-on: ubuntu-20.04
+        steps:
+        - uses: actions/checkout@v1
+        - name: prepare
+          run: |
+            sudo apt-get update
+            sudo apt-get install libglu1-mesa-dev mesa-common-dev xorg-dev
+            git submodule init
+            git submodule update
+        - name: linux-make
+          run: |
+            cmake -Bbuild .
+            cmake --build build -j
+        - name: linux-package
+          run: |
+            cd build
+            chmod +x live-glsl
+            tar -czvf live-glsl.tar.gz live-glsl
+        - uses: actions/upload-artifact@v2
+          with:
+            name: live-glsl-linux
+            path: build/live-glsl.tar.gz
