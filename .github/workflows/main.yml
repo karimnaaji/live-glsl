@@ -8,10 +8,6 @@ jobs:
         runs-on: windows-2019
         steps:
         - uses: actions/checkout@v1
-        - name: prepare
-          run: |
-            git submodule init
-            git submodule update
         - name: win64-vstudio
           run: |
             cmake -Bbuild . -G "Visual Studio 16 2019"
@@ -31,8 +27,6 @@ jobs:
         - name: prepare
           run: |
             brew install ninja
-            git submodule init
-            git submodule update
         - name: osx-make
           run: |
             cmake -Bbuild . -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -54,8 +48,6 @@ jobs:
           run: |
             sudo apt-get update
             sudo apt-get install libglu1-mesa-dev mesa-common-dev xorg-dev
-            git submodule init
-            git submodule update
         - name: linux-make
           run: |
             cmake -Bbuild .
