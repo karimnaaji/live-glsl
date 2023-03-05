@@ -3,6 +3,8 @@
 #include "arial.ttf.h"
 #include "utils.h"
 
+#include <assert.h>
+
 #define GLFONTSTASH_IMPLEMENTATION
 #include <glfontstash.h>
 
@@ -76,7 +78,7 @@ void ScreenLogRenderFrameStatus(ScreenLog& screen_log, uint32_t screen_width, bo
     static fsuint id = 0;
 
     if (id != 0) {
-    	glfonsUnbufferText(screen_log.FontContext, id);
+        glfonsUnbufferText(screen_log.FontContext, id);
     }
 
     glfonsBufferText(screen_log.FontContext, buffer, &id, FONS_EFFECT_NONE);

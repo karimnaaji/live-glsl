@@ -12,6 +12,9 @@ jobs:
           run: |
             cmake -Bbuild . -G "Visual Studio 16 2019"
             cmake --build build -j
+        - name: win64-tests
+          run: |
+            ./build/bin/live-glsl-tests.exe
         - name: win64-package
           run: |
             cd build/bin
@@ -31,6 +34,9 @@ jobs:
           run: |
             cmake -Bbuild . -G Ninja -DCMAKE_BUILD_TYPE=Release
             cmake --build build -j
+        - name: macos-tests
+          run: |
+            ./build/live-glsl-tests
         - name: osx-package
           run: |
             cd build
@@ -52,6 +58,9 @@ jobs:
           run: |
             cmake -Bbuild .
             cmake --build build -j
+        - name: linux-tests
+          run: |
+            ./build/live-glsl-tests
         - name: linux-package
           run: |
             cd build

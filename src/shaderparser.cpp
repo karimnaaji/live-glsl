@@ -7,8 +7,7 @@
 
 bool ShaderParserAmalgamate(const std::string& base_path, const std::string& path, std::vector<std::string>& watches, std::string& read_file_error, std::string& amalgamate) {
     std::ifstream file;
-    std::string curr_buffer;
-    std::string prev_buffer;
+
     file.open(path.c_str());
 
     if (!file.is_open()) {
@@ -18,6 +17,7 @@ bool ShaderParserAmalgamate(const std::string& base_path, const std::string& pat
 
     watches.push_back(path);
 
+    std::string curr_buffer;
     while (!file.eof()) {
         getline(file, curr_buffer);
         uint32_t current_char = 0;
@@ -41,6 +41,7 @@ bool ShaderParserAmalgamate(const std::string& base_path, const std::string& pat
     }
 
     file.close();
+
     return true;
 }
 

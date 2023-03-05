@@ -54,7 +54,9 @@ void FileWatcherThread(FileWatcher* watcher) {
             int current_changed = st.st_mtime;
 #endif
 
-            if (current_changed != last_changed[watch]) {
+            if (last_changed.find(watch) == last_changed.end()) {
+                last_changed[watch] = current_changed;
+            } else if (current_changed != last_changed[watch]) {
                 watcher->Callback(watcher->UserData, watch.c_str());
                 last_changed[watch] = current_changed;
             }
@@ -93,7 +95,11 @@ void FileWatcherAddWatch(HFileWatcher handle, const char* watch) {
 void FileWatcherRemoveWatch(HFileWatcher handle, const char* watch) {
     FileWatcher* watcher = (FileWatcher*)handle;
     std::lock_guard<std::mutex> guard(watcher->Mutex);
-    watcher->Watches.push_back(std::string(watch));
+    auto it = std::find(watcher->Watches.begin(), watcher->Watches.end(), watch);
+    if (watcher->Watches.size() > 1) {
+        std::swap(watcher->Watches.back(), *it);
+    }
+    watcher->Watches.pop_back();
 }
 
 void FileWatcherRemoveAllWatches(HFileWatcher handle) {
