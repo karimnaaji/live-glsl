@@ -29,6 +29,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glfw)
 add_executable(${EXECUTABLE_NAME} 
 	${CMAKE_SOURCE_DIR}/src/main.cpp
 	${CMAKE_SOURCE_DIR}/src/gui.cpp
+	${CMAKE_SOURCE_DIR}/src/filewatcher.cpp
+	${CMAKE_SOURCE_DIR}/src/arguments.cpp
 	${CMAKE_SOURCE_DIR}/deps/glfw/deps/glad.c
 	${CMAKE_SOURCE_DIR}/deps/getopt/src/getopt.c)
 

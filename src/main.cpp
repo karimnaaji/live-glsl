@@ -1,21 +1,11 @@
-#include <thread>
 #include <atomic>
 #include <memory>
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <sys/stat.h>
-
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
-
 #include <cassert>
-
-#include <getopt/getopt.h>
+#include <regex>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -29,6 +19,8 @@
 #include "gui.h"
 #include "arial.ttf.h"
 #include "defines.h"
+#include "filewatcher.h"
+#include "arguments.h"
 
 struct ScreenLog {
     FONScontext* FontContext;
@@ -45,13 +37,6 @@ struct ShaderProgram {
     ShaderProgram() {
         std::memset(this, 0x0, sizeof(ShaderProgram));
     }
-};
-
-struct Arguments {
-    std::string Input;
-    std::string Output;
-    uint32_t Width = 800;
-    uint32_t Height = 600;
 };
 
 struct RenderPass {
@@ -74,6 +59,7 @@ struct LiveGLSL {
     GLuint VertexBufferId;
     GLuint VaoId;
     std::string ShaderPath;
+    std::string BasePath;
     bool ShaderCompiled;
     bool IsContinuousRendering;
     int WindowWidth;
@@ -81,26 +67,11 @@ struct LiveGLSL {
     float PixelDensity;
 };
 
-enum Option {
-    OPTION_INPUT = 1,
-    OPTION_OUTPUT,
-    OPTION_WIDTH,
-    OPTION_HEIGHT
-};
-
-static const getopt_option_t option_list[] = {
-    { "input",      'i', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_INPUT,        "input source file", "GLSL file" },
-    { "output",     'o', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_OUTPUT,       "output source file", "PNG file" },
-    { "width",      'w', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_WIDTH,        "viewport width, in pixels (default 800)" },
-    { "height",     'h', GETOPT_OPTION_TYPE_REQUIRED,   0, OPTION_HEIGHT,       "viewport height, in pixels (default 600)" },
-    GETOPT_OPTIONS_END
-};
-
 static std::atomic<bool> ShaderFileChanged;
-static std::atomic<bool> ShouldQuit;
 static ScreenLog ScreenLogInstance;
 struct LiveGLSL;
 static LiveGLSL* LiveGLSLInstance;
+static HFileWatcher FileWatcher;
 static const GLchar* DefaultVertexShader = R"END(
 in vec2 position;
 void main() {
@@ -243,7 +214,7 @@ bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_li
     return true;
 }
 
-bool ReadShaderFile(const std::string& path, std::vector<RenderPass>& render_passes, std::vector<GUIComponent>& out_components, std::string& read_file_error) {
+bool ReadShaderFile(const std::string& base_path, const std::string& path, std::vector<std::string>& watches, std::vector<RenderPass>& render_passes, std::vector<GUIComponent>& components, std::string& read_file_error) {
     std::ifstream file;
     std::string curr_buffer;
     std::string prev_buffer;
@@ -254,8 +225,10 @@ bool ReadShaderFile(const std::string& path, std::vector<RenderPass>& render_pas
         return false;
     }
 
-    std::vector<GUIComponent> previous_components = out_components;
-    out_components.clear();
+    watches.push_back(path);
+
+    std::vector<GUIComponent> previous_components = components;
+    components.clear();
     uint32_t line_number = 0;
     RenderPass* pass = nullptr;
     std::string shader_source;
@@ -270,6 +243,15 @@ bool ReadShaderFile(const std::string& path, std::vector<RenderPass>& render_pas
         while (isspace(curr_buffer[current_char])) {
             ++current_char;
         }
+
+        std::regex include_regex("#include\\s+\"([^\"]+)\"");
+        std::smatch include_match;
+        if (std::regex_search(curr_buffer, include_match, include_regex)) {
+            std::string include = include_match[1];
+            ReadShaderFile(base_path, base_path + '\\' + include, watches, render_passes, components, read_file_error);
+            continue;
+        }
+
         if (current_char < prev_buffer.length() && prev_buffer[current_char] == '@') {
             if (prev_buffer.substr(current_char + 1, current_char + 8) == "pass_end") {
                 pass->ShaderSource = shader_source;
@@ -317,7 +299,7 @@ bool ReadShaderFile(const std::string& path, std::vector<RenderPass>& render_pas
                 if (!ParseGUIComponent(line_number, gui_component_line, curr_buffer, previous_components, component, read_file_error)) {
                     return false;
                 }
-                out_components.push_back(component);
+                components.push_back(component);
             }
         }
         if (curr_buffer[current_char] != '@') {
@@ -536,6 +518,13 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     live_glsl->IsContinuousRendering = false;
     live_glsl->Args = args;
 
+    const char* path = args.Input.c_str();
+    const char* last_slash = strrchr(path, '\\');
+    if (last_slash != nullptr) {
+        size_t parent_path_len = last_slash - path;
+        live_glsl->BasePath = args.Input.substr(0, parent_path_len);
+    }
+
     // Init GLFW Window
     {
         if (!glfwInit()) {
@@ -573,6 +562,11 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
         glfwSetKeyCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
             if (key == GLFW_KEY_ESCAPE) glfwSetWindowShouldClose(window, GL_TRUE);
         });
+        glfwSetDropCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* glfw_window, int count, const char** paths) {
+            if (count >= 0) {
+
+            }
+        });
         int fb_width = 0;
         int fb_height = 0;
         glfwGetFramebufferSize(live_glsl->GLFWWindowHandle, &fb_width, &fb_height);
@@ -589,11 +583,16 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     {
         std::string read_file_error;
         std::vector<RenderPass> render_passes;
-        if (!ReadShaderFile(args.Input, render_passes, live_glsl->GUIComponents, read_file_error)) {
+        std::vector<std::string> watches;
+        if (!ReadShaderFile(live_glsl->BasePath, args.Input, watches, render_passes, live_glsl->GUIComponents, read_file_error)) {
             ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());
         } else {
             live_glsl->ShaderCompiled = BuildRenderPasses(render_passes);
             live_glsl->RenderPasses = render_passes;
+            FileWatcherRemoveAllWatches(FileWatcher);
+            for (const auto& watch : watches) {
+                FileWatcherAddWatch(FileWatcher, watch.c_str());
+            }
         }
     }
 
@@ -645,10 +644,15 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
         std::string read_file_error;
         if (ShaderFileChanged) {
             std::vector<RenderPass> render_passes;
-            if (ReadShaderFile(live_glsl.ShaderPath, render_passes, live_glsl.GUIComponents, read_file_error)) {
+            std::vector<std::string> watches;
+            if (ReadShaderFile(live_glsl.BasePath, live_glsl.ShaderPath, watches, render_passes, live_glsl.GUIComponents, read_file_error)) {
                 DestroyRenderPasses(live_glsl.RenderPasses);
                 live_glsl.ShaderCompiled = BuildRenderPasses(render_passes);
                 live_glsl.RenderPasses = render_passes;
+                FileWatcherRemoveAllWatches(FileWatcher);
+                for (const auto& watch : watches) {
+                    FileWatcherAddWatch(FileWatcher, watch.c_str());
+                }
                 glfwPostEmptyEvent();
             }
         }
@@ -780,90 +784,9 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
     return EXIT_SUCCESS;
 }
 
-#define MAX_PATH 8096
-
-#ifdef _WIN32
-void FileWatcherThread(const std::string& shader_source_path) {
-    char real_path[MAX_PATH];
-    DWORD length = GetFullPathNameA(shader_source_path.c_str(), MAX_PATH, real_path, nullptr);
-    if (length == 0 || length >= MAX_PATH) {
-        printf( "GetFullPathNameA call failed on path %s\n", shader_source_path.c_str());
-        return;
-    }
-    int last_changed = 0;
-    while (!ShouldQuit) {
-        WIN32_FILE_ATTRIBUTE_DATA file_attributes;
-        if (!GetFileAttributesExA(real_path, GetFileExInfoStandard, &file_attributes)) {
-            printf( "GetFileAttributesExA call failed on path %s\n", real_path);
-            return;
-        }
-        int current_changed = file_attributes.ftLastWriteTime.dwLowDateTime;
-        if (current_changed != last_changed) {
-            ShaderFileChanged.store(true);
-            last_changed = current_changed;
-            glfwPostEmptyEvent();
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
-    }
-}
-#else
-void FileWatcherThread(const std::string& shader_source_path) {
-    char real_path[MAX_PATH];
-    realpath(shader_source_path.c_str(), real_path);
-    int last_changed;
-    struct stat st;
-    stat(real_path, &st);
-    while (!ShouldQuit) {
-        stat(real_path, &st);
-        if (st.st_mtime != last_changed) {
-            ShaderFileChanged.store(true);
-            last_changed = st.st_mtime;
-            glfwPostEmptyEvent();
-        }
-        usleep(16000);
-    }
-}
-#endif
-
-bool ParseArguments(int argc, const char** argv, Arguments& args) {
-    getopt_context_t ctx;
-    if (getopt_create_context(&ctx, argc, argv, option_list) < 0) {
-        printf( "error while creating getopt ctx, bad options-list?" );
-        return false;
-    }
-    int opt = 0;
-    while ((opt = getopt_next(&ctx)) != -1) {
-        switch (opt) {
-            case '+':
-                printf("live-glsl: got argument without flag: %s\n", ctx.current_opt_arg);
-                return false;
-            case '?':
-                printf("live-glsl: unknown flag %s\n", ctx.current_opt_arg);
-                return false;
-            case '!':
-                printf("live-glsl: invalid use of flag %s\n", ctx.current_opt_arg);
-                return false;
-            case OPTION_INPUT:
-                args.Input = ctx.current_opt_arg;
-                break;
-            case OPTION_OUTPUT:
-                args.Output = ctx.current_opt_arg;
-                break;
-            case OPTION_WIDTH:
-                args.Width = atoi(ctx.current_opt_arg);
-                break;
-            case OPTION_HEIGHT:
-                args.Height = atoi(ctx.current_opt_arg);
-                break;
-            default:
-                break;
-        }
-    }
-    if (args.Input.empty()) {
-        printf("live-glsl: no input file (--input [path])\n");
-        return false;
-    }
-    return true;
+void OnFileChange(void* user_data, const char* file) {
+    ShaderFileChanged.store(true);
+    glfwPostEmptyEvent();
 }
 
 #if defined(_WIN32)
@@ -895,23 +818,21 @@ int main(int argc, const char **argv) {
 #endif
 
     Arguments args;
-    if (!ParseArguments(argc, argv, args)) {
+    if (!ArgumentsParse(argc, argv, args)) {
         return EXIT_FAILURE;
     }
 
+    FileWatcher = FileWatcherCreate(OnFileChange, nullptr, 16);
+
     ShaderFileChanged.store(false);
-    ShouldQuit.store(false);
     LiveGLSLInstance = LiveGLSLCreate(args);
     if (!LiveGLSLInstance) {
         return EXIT_FAILURE;
     }
 
-    std::thread file_watcher_thread(FileWatcherThread, args.Input);
     bool res = LiveGLSLRender(*LiveGLSLInstance);
-    ShouldQuit.store(true);
-    file_watcher_thread.join();
-
     LiveGLSLDestroy(LiveGLSLInstance);
+    FileWatcherDestroy(FileWatcher);
 
     glfwTerminate();
 
