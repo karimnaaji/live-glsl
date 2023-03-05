@@ -48,7 +48,7 @@ void FileWatcherThread(FileWatcher* watcher) {
             int current_changed = file_attributes.ftLastWriteTime.dwLowDateTime;
 #else
             realpath(watch.c_str(), real_path);
-            stat st;
+            struct stat st;
             stat(real_path, &st);
             int current_changed = st.st_mtime;
 #endif
