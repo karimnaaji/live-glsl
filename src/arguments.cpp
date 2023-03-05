@@ -23,6 +23,7 @@ bool ArgumentsParse(int argc, const char** argv, Arguments& args) {
         printf( "error while creating getopt ctx, bad options-list?" );
         return false;
     }
+
     int opt = 0;
     while ((opt = getopt_next(&ctx)) != -1) {
         switch (opt) {

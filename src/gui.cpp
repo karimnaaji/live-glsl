@@ -1,6 +1,6 @@
 #include "gui.h"
 
-#include "defines.h"
+#include "utils.h"
 #include "arial.ttf.h"
 
 #include "glad/glad.h"
@@ -189,4 +189,131 @@ void GUIRender() {
 
 void GUIDestroy() {
     ImGui_ImplGlfwGL3_Shutdown();
+}
+
+bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, const std::vector<GUIComponent>& previous_components, GUIComponent& out_component, std::string& out_parse_error) {
+    auto ReportError = [&](const std::string& error) {
+        char buffer[33];
+        sprintf(buffer, "%d", line_number);
+        out_parse_error = error + " at line " + buffer;
+    };
+    if (uniform_line.empty()) {
+        ReportError("GUI type not associated with any uniform '" + gui_component_line + "'");
+        return false;
+    }
+    uint32_t current_char = 0;
+    while (current_char < gui_component_line.size() && gui_component_line[current_char] != '(') {
+        ++current_char;
+    }
+
+    std::string component_name = gui_component_line.substr(0, current_char);
+    std::string component_data = gui_component_line.substr(current_char, std::string::npos);
+    if (component_name == "slider1") {
+        out_component.Type = EGUIComponentTypeSlider1;
+    } else if (component_name == "slider2") {
+        out_component.Type = EGUIComponentTypeSlider2;
+    } else if (component_name == "slider3") {
+        out_component.Type = EGUIComponentTypeSlider3;
+    } else if (component_name == "slider4") {
+        out_component.Type = EGUIComponentTypeSlider4;
+    } else if (component_name == "drag1") {
+        out_component.Type = EGUIComponentTypeDrag1;
+    } else if (component_name == "drag2") {
+        out_component.Type = EGUIComponentTypeDrag2;
+    } else if (component_name == "drag3") {
+        out_component.Type = EGUIComponentTypeDrag3;
+    } else if (component_name == "drag4") {
+        out_component.Type = EGUIComponentTypeDrag4;
+    } else if (component_name == "color3") {
+        out_component.Type = EGUIComponentTypeColor3;
+    } else if (component_name == "color4") {
+        out_component.Type = EGUIComponentTypeColor4;
+    } else {
+        ReportError("Invalid GUI type name '" + component_name + "'");
+        return false;
+    }
+
+    if (!component_data.empty()) {
+        if (GUIIsSliderType(out_component.Type)) {
+            int scanned = sscanf(component_data.c_str(), "(%f, %f)",
+                &out_component.SliderRange.Start,
+                &out_component.SliderRange.End);
+            if (scanned != 2) {
+                std::string error;
+                error += "Invalid format for GUI component data '" + component_data + "'\n";
+                error += "Format should be @" + component_name + "(start_range, end_range)";
+                ReportError(error);
+                return false;
+            }
+        } else if (GUIIsDragType(out_component.Type)) {
+            int scanned = sscanf(component_data.c_str(), "(%f, %f, %f)",
+                &out_component.DragRange.Speed,
+                &out_component.DragRange.Start,
+                &out_component.DragRange.End);
+            if (scanned != 3) {
+                std::string error;
+                error += "Invalid format for GUI component data " + component_data + "\n";
+                error += "Format should be @" + component_name + "(speed, start_range, end_range)";
+                ReportError(error);
+                return false;
+            }
+        }
+    } else {
+        // Initialize the data with convenient defaults
+        if (GUIIsSliderType(out_component.Type)) {
+            out_component.SliderRange.Start = 0.0f;
+            out_component.SliderRange.End = 1.0f;
+        } else if (GUIIsDragType(out_component.Type)) {
+            out_component.DragRange.Speed = 0.05f;
+            out_component.DragRange.Start = 0.0f;
+            out_component.DragRange.End = 1.0f;
+        }
+    }
+
+    std::vector<std::string> uniform_tokens = SplitString(uniform_line,  ' ');
+    if (uniform_tokens.size() != 3) {
+        ReportError("GUI associated with invalid uniform");
+        return false;
+    }
+
+    if (uniform_tokens[0] != "uniform") {
+        ReportError("GUI type not associated with a uniform");
+        return false;
+    }
+
+    std::string uniform_type = uniform_tokens[1];
+    if (uniform_type == "float") {
+        out_component.UniformType = EGUIUniformTypeFloat;
+    } else if (uniform_type == "vec2") {
+        out_component.UniformType = EGUIUniformTypeVec2;
+    } else if (uniform_type == "vec3") {
+        out_component.UniformType = EGUIUniformTypeVec3;
+    } else {
+        ReportError("GUI not supported for uniform type '" + uniform_type + "'");
+        return false;
+    }
+
+    if (GUIComponents(out_component.Type) != GUIUniformVariableComponents(out_component.UniformType)) {
+        ReportError("GUI component count does not match uniform component count");
+        return false;
+    }
+
+    // Trim semicolon ';'
+    while (uniform_tokens.back().back() == ';') {
+        uniform_tokens.back().pop_back();
+    }
+
+    out_component.UniformName = uniform_tokens.back();
+
+    if (out_component.UniformName == "time" || out_component.UniformName == "resolution") {
+        ReportError("GUI type not allowed for builtin uniforms");
+        return false;
+    }
+
+    for (const GUIComponent& previous_component : previous_components) {
+        if (previous_component.UniformName == out_component.UniformName) {
+            std::memcpy(&out_component.Vec1, &previous_component.Vec1, sizeof(glm::vec4));
+        }
+    }
+    return true;
 }

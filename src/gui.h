@@ -122,3 +122,4 @@ void GUIInit(GLFWwindow* window_handle);
 bool GUINewFrame(std::vector<GUIComponent>& gui_components);
 void GUIRender();
 void GUIDestroy();
+bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, const std::vector<GUIComponent>& previous_components, GUIComponent& out_component, std::string& out_parse_error);
