@@ -12,6 +12,9 @@ jobs:
           run: |
             cmake -Bbuild . -G "Visual Studio 16 2019"
             cmake --build build -j
+        - name: win64-tests
+          run: |
+            ./build/bin/live-glsl-tests.exe
         - name: win64-package
           run: |
             cd build/bin
