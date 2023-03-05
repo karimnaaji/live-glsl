@@ -6,12 +6,11 @@ live-glsl is a very simple and lightweight tool for coding shaders. It has the a
 
 ## build and run
 
-```sh
-> cmake . -Bbuild && cmake --build build
-```
+To manually compile live-glsl, you will need to have CMake installed on your system, which you can download it from the [CMake website](https://cmake.org/download/). Once CMake is installed, you can compile live-gls with the following commands:
 
 ```sh
-> ./live-glsl --input fragment_shader_to_watch
+> cmake . -Bbuild && cmake --build build
+> build/live-glsl --input fragment_shader_to_watch
 ```
 
 ## example
@@ -27,7 +26,7 @@ live-glsl provides a set of convenient built-in uniforms that can be directly ac
 - `mouse`: a `vec3` value that provides information about the current state of the mouse. The first two components of this vector represent the x and y coordinates of the mouse on the screen, measured in pixels. The third component of the vector stores the state of the mouse click, with a value of `1` indicating that the mouse button is currently pressed, and `0` indicating that it is not.
 - `pixel_ratio`: a `float` value that provides the pixel ratio of the current device. This can be useful for ensuring that your shaders are properly scaled and displayed on high-resolution screens.
 
-## GUI elements
+## gui elements
 
 ![](images/screenshot3.png)
 
@@ -46,3 +45,17 @@ uniform float uniform_name;
 ```
 
 Color types do not need any parameter.
+
+## include directives
+
+live-glsl also has the ability to include separate shader files in your code, this can help to keep your shader code organized and modular, making it easier to avoid duplication. This can be done by using the `#include` directive, which allows you to reference another shader file and insert its contents into the current file.
+
+For example, suppose you have a file named `lighting.glsl` that contains a set of lighting functions that you would like to use in your main shader code. You could include this file in your code using the following line:
+```c
+#include "lighting.glsl"
+```
+When the shader is compiled, the contents of the `lighting.glsl` file will be inserted into the current shader code, allowing you to use the lighting functions in your code.
+
+## additional notes
+
+live-gls creates an OpenGL 3.2 and uses version 1.50 of the OpenGL Shading Language (GLSL). 
