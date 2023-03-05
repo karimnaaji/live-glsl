@@ -6,6 +6,7 @@
 #include <atomic>
 #include <thread>
 #include <mutex>
+#include <algorithm>
 #ifdef _WIN32
 #include <Windows.h>
 #else
