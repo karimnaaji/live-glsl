@@ -3,9 +3,8 @@ project(live-glsl)
 
 set(EXECUTABLE_NAME live-glsl)
 set(CMAKE_CXX_STANDARD 11)
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    set(CMAKE_WIN32_EXECUTABLE ON)
-else()
+
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wno-unused-result -Wno-deprecated-declarations")
 endif()
 
@@ -47,6 +46,7 @@ target_link_libraries(${EXECUTABLE_NAME} glfw ${GLFW_LIBRARIES})
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     set(OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set_target_properties(${EXECUTABLE_NAME} CMAKE_WIN32_EXECUTABLE ON)
     set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
     set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
     set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
