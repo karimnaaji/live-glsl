@@ -16,6 +16,8 @@ include_directories(${CMAKE_SOURCE_DIR}/deps/glm/gtc)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/include)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/deps)
 include_directories(${CMAKE_SOURCE_DIR}/deps/getopt/include)
+include_directories(${CMAKE_SOURCE_DIR}/tests)
+include_directories(${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glm)
 
@@ -26,8 +28,7 @@ option(GLFW_INSTALL OFF)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glfw)
 
-add_executable(${EXECUTABLE_NAME} 
-	${CMAKE_SOURCE_DIR}/src/main.cpp
+set(SOURCES
 	${CMAKE_SOURCE_DIR}/src/gui.cpp
 	${CMAKE_SOURCE_DIR}/src/filewatcher.cpp
 	${CMAKE_SOURCE_DIR}/src/shader.cpp
@@ -40,6 +41,8 @@ add_executable(${EXECUTABLE_NAME}
 	${CMAKE_SOURCE_DIR}/deps/glfw/deps/glad.c
 	${CMAKE_SOURCE_DIR}/deps/getopt/src/getopt.c)
 
+add_executable(${EXECUTABLE_NAME} ${CMAKE_SOURCE_DIR}/src/main.cpp ${SOURCES})
+
 target_link_libraries(${EXECUTABLE_NAME} glfw ${GLFW_LIBRARIES})
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
@@ -48,3 +51,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
     set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
 endif()
+
+add_executable(${EXECUTABLE_NAME}-tests ${CMAKE_SOURCE_DIR}/tests/liveglsl_tests.cpp ${SOURCES})
+
+target_link_libraries(${EXECUTABLE_NAME}-tests glfw ${GLFW_LIBRARIES})

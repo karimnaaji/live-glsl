@@ -13,8 +13,8 @@ struct LiveGLSL {
     std::vector<RenderPass> RenderPasses;
     GLFWwindow* GLFWWindowHandle;
     Arguments Args;
-	ScreenLog ScreenLogInstance;
-	HFileWatcher FileWatcher;
+    ScreenLog ScreenLogInstance;
+    HFileWatcher FileWatcher;
     std::string ShaderPath;
     std::string BasePath;
     int WindowWidth;
@@ -22,7 +22,7 @@ struct LiveGLSL {
     GLuint VertexBufferId;
     GLuint VaoId;
     float PixelDensity;
-	std::atomic<bool> ShaderFileChanged;
+    std::atomic<bool> ShaderFileChanged;
     bool ShaderCompiled;
     bool IsContinuousRendering;
 };

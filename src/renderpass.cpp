@@ -1,5 +1,7 @@
 #include "renderpass.h"
 
+#include <assert.h>
+
 static const GLchar* DefaultVertexShader = R"END(
 in vec2 position;
 void main() {
@@ -32,17 +34,24 @@ bool RenderPassCreate(std::vector<RenderPass>& render_passes, ScreenLog& screen_
         if (!render_pass.IsMain) {
             glGenFramebuffers(1, &render_pass.FBO);
             glBindFramebuffer(GL_FRAMEBUFFER, render_pass.FBO);
+
             glGenTextures(1, &render_pass.Texture);
             glBindTexture(GL_TEXTURE_2D, render_pass.Texture);
+
             assert(render_pass.Width != 0);
             assert(render_pass.Height != 0);
+
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, render_pass.Width, render_pass.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_pass.Texture, 0);
+
             assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
