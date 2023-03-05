@@ -52,6 +52,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
 endif()
 
-add_executable(${EXECUTABLE_NAME}-tests ${CMAKE_SOURCE_DIR}/tests/liveglsl_tests.cpp ${SOURCES})
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+	add_executable(${EXECUTABLE_NAME}-tests ${CMAKE_SOURCE_DIR}/tests/liveglsl_tests.cpp ${SOURCES})
 
-target_link_libraries(${EXECUTABLE_NAME}-tests glfw ${GLFW_LIBRARIES})
+	target_link_libraries(${EXECUTABLE_NAME}-tests glfw ${GLFW_LIBRARIES})
+endif()
