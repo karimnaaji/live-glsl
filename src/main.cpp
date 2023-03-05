@@ -11,7 +11,7 @@
 #include <GLFW/glfw3.h>
 #define GLFONTSTASH_IMPLEMENTATION
 #include <glfontstash.h>
-#define FONT_SIZE 32
+#define FONT_SIZE 20
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
@@ -273,7 +273,6 @@ bool ReadShaderFile(const std::string& base_path, const std::string& path, std::
         return false;
     }
 
-    printf("%s\n", amalgamate.c_str());
     std::vector<GUIComponent> previous_components = components;
     components.clear();
     uint32_t line_number = 0;
@@ -469,7 +468,6 @@ GLuint CompileShader(const std::string src, GLenum type) {
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char info[8096];
         glGetShaderInfoLog(shader, length, NULL, info);
-        fprintf(stderr, "%s\n", src.c_str());
         fprintf(stderr, "%s\n", info);
         ScreenLogBuffer(ScreenLogInstance, info);
         glDeleteShader(shader);
@@ -498,7 +496,7 @@ bool ShaderProgramBuild(ShaderProgram& shader_program, const std::string& fragme
     GLint is_linked;
     glGetProgramiv(shader_program.Handle, GL_LINK_STATUS, &is_linked);
     if (is_linked == GL_FALSE) {
-        printf("%s\n", fragment_source.c_str());
+        fprintf(stderr, "Failed to link program:\n%s", fragment_source.c_str());
         ScreenLogBuffer(ScreenLogInstance, "Error linking program");
         ShaderProgramDestroy(shader_program);
         return false;
@@ -796,7 +794,7 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
                 int res = stbi_write_png(live_glsl.Args.Output.c_str(), width, height, 3, pixels, 3 * width);
                 delete[] pixels;
                 if (res == 0) {
-                    printf("Failed to write image to file: %s\n", live_glsl.Args.Output.c_str());
+                    fprintf(stderr, "Failed to write image to file: %s\n", live_glsl.Args.Output.c_str());
                     return EXIT_FAILURE;
                 }
                 return EXIT_SUCCESS;
