@@ -22,6 +22,12 @@
 #include "filewatcher.h"
 #include "arguments.h"
 
+#ifdef _WIN32
+#define PATH_DELIMITER '\\'
+#else
+#define PATH_DELIMITER '/'
+#endif
+
 struct ScreenLog {
     FONScontext* FontContext;
     bool LogBuffered;
@@ -248,7 +254,7 @@ bool ReadShaderFile(const std::string& base_path, const std::string& path, std::
         std::smatch include_match;
         if (std::regex_search(curr_buffer, include_match, include_regex)) {
             std::string include = include_match[1];
-            ReadShaderFile(base_path, base_path + '\\' + include, watches, render_passes, components, read_file_error);
+            ReadShaderFile(base_path, base_path + PATH_DELIMITER + include, watches, render_passes, components, read_file_error);
             continue;
         }
 
@@ -509,6 +515,40 @@ bool BuildRenderPasses(std::vector<RenderPass>& render_passes) {
     return true;
 }
 
+void ReloadShaderIfChanged(LiveGLSL& live_glsl, std::string path, bool first_load = false) {
+    if (!ShaderFileChanged && !first_load) {
+        return;
+    }
+    std::string read_file_error;
+    std::vector<RenderPass> render_passes;
+    std::vector<std::string> watches;
+    if (!ReadShaderFile(live_glsl.BasePath, path, watches, render_passes, live_glsl.GUIComponents, read_file_error)) {
+        if (!read_file_error.empty()) {
+            ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());
+        }
+    } else {
+        live_glsl.ShaderCompiled = BuildRenderPasses(render_passes);
+        live_glsl.RenderPasses = render_passes;
+        FileWatcherRemoveAllWatches(FileWatcher);
+        for (const auto& watch : watches) {
+            FileWatcherAddWatch(FileWatcher, watch.c_str());
+        }
+        glfwPostEmptyEvent();
+    }
+    ShaderFileChanged.store(false); 
+}
+
+std::string ExtractBasePath(const std::string& path) {
+    const char* cpath = path.c_str();
+    const char* last_slash = strrchr(cpath, PATH_DELIMITER);
+    std::string base_path;
+    if (last_slash != nullptr) {
+        size_t parent_path_len = last_slash - cpath;
+        base_path = path.substr(0, parent_path_len);
+    }
+    return base_path;
+}
+
 LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     LiveGLSL* live_glsl = new LiveGLSL();
     live_glsl->ShaderCompiled = false;
@@ -517,13 +557,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     live_glsl->WindowHeight = args.Height;
     live_glsl->IsContinuousRendering = false;
     live_glsl->Args = args;
-
-    const char* path = args.Input.c_str();
-    const char* last_slash = strrchr(path, '\\');
-    if (last_slash != nullptr) {
-        size_t parent_path_len = last_slash - path;
-        live_glsl->BasePath = args.Input.substr(0, parent_path_len);
-    }
+    live_glsl->BasePath = ExtractBasePath(args.Input);
 
     // Init GLFW Window
     {
@@ -562,9 +596,15 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
         glfwSetKeyCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
             if (key == GLFW_KEY_ESCAPE) glfwSetWindowShouldClose(window, GL_TRUE);
         });
-        glfwSetDropCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* glfw_window, int count, const char** paths) {
+        glfwSetDropCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* window, int count, const char** paths) {
             if (count >= 0) {
-
+                LiveGLSL* live_glsl = static_cast<LiveGLSL*>(glfwGetWindowUserPointer(window));
+                std::string path = std::string(paths[0]);
+                live_glsl->ShaderPath = path;
+                live_glsl->Args.Input = path;
+                live_glsl->BasePath = ExtractBasePath(path);
+            
+                ReloadShaderIfChanged(*live_glsl, path, true);
             }
         });
         int fb_width = 0;
@@ -579,22 +619,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
 
     ScreenLogInstance = ScreenLogCreate(live_glsl->PixelDensity);
 
-    // Compile shader
-    {
-        std::string read_file_error;
-        std::vector<RenderPass> render_passes;
-        std::vector<std::string> watches;
-        if (!ReadShaderFile(live_glsl->BasePath, args.Input, watches, render_passes, live_glsl->GUIComponents, read_file_error)) {
-            ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());
-        } else {
-            live_glsl->ShaderCompiled = BuildRenderPasses(render_passes);
-            live_glsl->RenderPasses = render_passes;
-            FileWatcherRemoveAllWatches(FileWatcher);
-            for (const auto& watch : watches) {
-                FileWatcherAddWatch(FileWatcher, watch.c_str());
-            }
-        }
-    }
+    ReloadShaderIfChanged(*live_glsl, args.Input, true);
 
     // Init GL
     {
@@ -613,14 +638,6 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
         glGenBuffers(1, &live_glsl->VertexBufferId);
         glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-        for (auto& render_pass : live_glsl->RenderPasses) {
-            if (render_pass.IsMain) {
-                GLint position_attrib = glGetAttribLocation(render_pass.Program.Handle, "position");
-                glVertexAttribPointer(position_attrib, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-                glEnableVertexAttribArray(position_attrib);
-            }
-        }
     }
 
     return live_glsl;
@@ -640,27 +657,7 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
     bool sixty_fps = false;
 
     while (!glfwWindowShouldClose(live_glsl.GLFWWindowHandle)) {
-        std::string shader_source;
-        std::string read_file_error;
-        if (ShaderFileChanged) {
-            std::vector<RenderPass> render_passes;
-            std::vector<std::string> watches;
-            if (ReadShaderFile(live_glsl.BasePath, live_glsl.ShaderPath, watches, render_passes, live_glsl.GUIComponents, read_file_error)) {
-                DestroyRenderPasses(live_glsl.RenderPasses);
-                live_glsl.ShaderCompiled = BuildRenderPasses(render_passes);
-                live_glsl.RenderPasses = render_passes;
-                FileWatcherRemoveAllWatches(FileWatcher);
-                for (const auto& watch : watches) {
-                    FileWatcherAddWatch(FileWatcher, watch.c_str());
-                }
-                glfwPostEmptyEvent();
-            }
-        }
-        ShaderFileChanged.store(false);
-
-        if (!read_file_error.empty()) {
-            ScreenLogBuffer(ScreenLogInstance, read_file_error.c_str());
-        }
+        ReloadShaderIfChanged(live_glsl, live_glsl.ShaderPath);
 
         double current_time = glfwGetTime();
         ++frame_count;
@@ -738,6 +735,13 @@ int LiveGLSLRender(LiveGLSL& live_glsl) {
                 }
 
                 glBindVertexArray(live_glsl.VaoId);
+                for (auto& render_pass : live_glsl.RenderPasses) {
+                    if (render_pass.IsMain) {
+                        GLint position_attrib = glGetAttribLocation(render_pass.Program.Handle, "position");
+                        glVertexAttribPointer(position_attrib, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+                        glEnableVertexAttribArray(position_attrib);
+                    }
+                }
                 glDrawArrays(GL_TRIANGLES, 0, 6);
             }
 
