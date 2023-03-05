@@ -6,7 +6,7 @@ live-glsl is a very simple and lightweight tool for coding shaders. It has the a
 
 ## build and run
 
-To manually compile live-glsl, you will need to have CMake installed on your system, which you can download it from the [CMake website](https://cmake.org/download/). Once CMake is installed, you can compile live-gls with the following commands:
+To manually compile live-glsl, you will need to have CMake installed on your system, which you can download from the [CMake website](https://cmake.org/download/). Once CMake is installed, you can compile live-gls with the following commands:
 
 ```sh
 > cmake . -Bbuild && cmake --build build
