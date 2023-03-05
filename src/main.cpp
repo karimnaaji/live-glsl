@@ -220,7 +220,18 @@ bool ParseGUIComponent(uint32_t line_number, const std::string& gui_component_li
     return true;
 }
 
-bool ReadShaderFile(const std::string& base_path, const std::string& path, std::vector<std::string>& watches, std::vector<RenderPass>& render_passes, std::vector<GUIComponent>& components, std::string& read_file_error) {
+std::string ExtractBasePath(const std::string& path) {
+    const char* cpath = path.c_str();
+    const char* last_slash = strrchr(cpath, PATH_DELIMITER);
+    std::string base_path;
+    if (last_slash != nullptr) {
+        size_t parent_path_len = last_slash - cpath;
+        base_path = path.substr(0, parent_path_len);
+    }
+    return base_path;
+}
+
+bool Amalgamate(const std::string& base_path, const std::string& path, std::vector<std::string>& watches, std::string& read_file_error, std::string& amalgamate) {
     std::ifstream file;
     std::string curr_buffer;
     std::string prev_buffer;
@@ -233,29 +244,56 @@ bool ReadShaderFile(const std::string& base_path, const std::string& path, std::
 
     watches.push_back(path);
 
-    std::vector<GUIComponent> previous_components = components;
-    components.clear();
-    uint32_t line_number = 0;
-    RenderPass* pass = nullptr;
-    std::string shader_source;
-    auto ReportError = [&](const std::string& error, uint32_t line_number) {
-        char buffer[33];
-        sprintf(buffer, "%d", line_number);
-        read_file_error = error + " at line " + buffer;
-    };
     while (!file.eof()) {
         getline(file, curr_buffer);
         uint32_t current_char = 0;
         while (isspace(curr_buffer[current_char])) {
             ++current_char;
         }
-
         std::regex include_regex("#include\\s+\"([^\"]+)\"");
         std::smatch include_match;
         if (std::regex_search(curr_buffer, include_match, include_regex)) {
-            std::string include = include_match[1];
-            ReadShaderFile(base_path, base_path + PATH_DELIMITER + include, watches, render_passes, components, read_file_error);
-            continue;
+            std::string include = base_path + PATH_DELIMITER + std::string(include_match[1]);
+            if (!Amalgamate(ExtractBasePath(include), include, watches, read_file_error, amalgamate)) {
+                return false;
+            }
+        } else {
+            amalgamate += curr_buffer + '\n';
+        }
+    }
+    file.close();
+    return true;
+}
+
+bool ReadShaderFile(const std::string& base_path, const std::string& path, std::vector<std::string>& watches, std::vector<RenderPass>& render_passes, std::vector<GUIComponent>& components, std::string& read_file_error) {
+    std::string amalgamate;
+
+    if (!Amalgamate(base_path, path, watches, read_file_error, amalgamate)) {
+        read_file_error = "Unable read file at path " + path;
+        return false;
+    }
+
+    printf("%s\n", amalgamate.c_str());
+    std::vector<GUIComponent> previous_components = components;
+    components.clear();
+    uint32_t line_number = 0;
+    RenderPass* pass = nullptr;
+    std::string shader_source;
+    std::string prev_buffer;
+    auto ReportError = [&](const std::string& error, uint32_t line_number) {
+        char buffer[33];
+        sprintf(buffer, "%d", line_number);
+        read_file_error = error + " at line " + buffer;
+    };
+    for (size_t i = 0; i < amalgamate.size(); ++i) {
+        std::string line;
+        while (amalgamate[i] != '\n') {
+            line += amalgamate[i];
+            ++i;
+        }
+        uint32_t current_char = 0;
+        while (isspace(line[current_char])) {
+            ++current_char;
         }
 
         if (current_char < prev_buffer.length() && prev_buffer[current_char] == '@') {
@@ -302,16 +340,16 @@ bool ReadShaderFile(const std::string& base_path, const std::string& path, std::
             } else {
                 GUIComponent component;
                 std::string gui_component_line = prev_buffer.substr(current_char + 1, std::string::npos);
-                if (!ParseGUIComponent(line_number, gui_component_line, curr_buffer, previous_components, component, read_file_error)) {
+                if (!ParseGUIComponent(line_number, gui_component_line, line, previous_components, component, read_file_error)) {
                     return false;
                 }
                 components.push_back(component);
             }
         }
-        if (curr_buffer[current_char] != '@') {
-            shader_source += curr_buffer + "\n";
+        if (line[current_char] != '@') {
+            shader_source += line + "\n";
         }
-        prev_buffer = curr_buffer;
+        prev_buffer = line;
         ++line_number;
     }
     if (render_passes.empty()) {
@@ -319,7 +357,6 @@ bool ReadShaderFile(const std::string& base_path, const std::string& path, std::
         render_passes.back().ShaderSource = shader_source;
         render_passes.back().IsMain = true;
     }
-    file.close();
     return true;
 }
 
@@ -461,6 +498,7 @@ bool ShaderProgramBuild(ShaderProgram& shader_program, const std::string& fragme
     GLint is_linked;
     glGetProgramiv(shader_program.Handle, GL_LINK_STATUS, &is_linked);
     if (is_linked == GL_FALSE) {
+        printf("%s\n", fragment_source.c_str());
         ScreenLogBuffer(ScreenLogInstance, "Error linking program");
         ShaderProgramDestroy(shader_program);
         return false;
@@ -536,17 +574,6 @@ void ReloadShaderIfChanged(LiveGLSL& live_glsl, std::string path, bool first_loa
         glfwPostEmptyEvent();
     }
     ShaderFileChanged.store(false); 
-}
-
-std::string ExtractBasePath(const std::string& path) {
-    const char* cpath = path.c_str();
-    const char* last_slash = strrchr(cpath, PATH_DELIMITER);
-    std::string base_path;
-    if (last_slash != nullptr) {
-        size_t parent_path_len = last_slash - cpath;
-        base_path = path.substr(0, parent_path_len);
-    }
-    return base_path;
 }
 
 LiveGLSL* LiveGLSLCreate(const Arguments& args) {
