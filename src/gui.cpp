@@ -252,7 +252,7 @@ bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_li
                 &out_component.DragRange.End);
             if (scanned != 3) {
                 std::string error;
-                error += "Invalid format for GUI component data " + component_data + "\n";
+                error += "Invalid format for GUI component data '" + component_data + "'\n";
                 error += "Format should be @" + component_name + "(speed, start_range, end_range)";
                 ReportError(error);
                 return false;

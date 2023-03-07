@@ -15,7 +15,7 @@ To manually compile live-glsl, you will need to have CMake installed on your sys
 
 ## example
 
-There are multiple examples available in the example folder that you can easily run to see the tool in action. To execute an example, navigate to the main directory, build the tool from sources, and then run the command `./build/live-glsl --input examples/atmosphere.frag` in your terminal. This will run the specified example file and allow you to start coding.
+There are multiple examples available in the shaders folder that you can easily run to see the tool in action. To execute an example, navigate to the main directory, build the tool from sources, and then run the command `./build/live-glsl --input shaders/atmosphere.frag` in your terminal. This will run the specified example file and allow you to start coding.
 
 ## builtin uniforms
 

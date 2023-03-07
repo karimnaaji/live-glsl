@@ -1,6 +1,9 @@
 #include "arguments.h"
 #include "utils.h"
 #include "filewatcher.h"
+#include "gui.h"
+#include "renderpass.h"
+#include "shaderparser.h"
 #include "utest.h"
 
 #include <string.h>
@@ -12,8 +15,9 @@
 #define T(b) EXPECT_TRUE(b)
 #define TSTR(s0, s1) EXPECT_TRUE(0 == strcmp(s0,s1))
 
-UTEST(arguments_tests, parse_0) {
+UTEST(arguments, parse_0) {
     Arguments arguments;
+
     const char* args[] = {
         "liveglsl",
         "--input",
@@ -23,18 +27,21 @@ UTEST(arguments_tests, parse_0) {
         "--height",
         "200"
     };
+
     T(ArgumentsParse(ARRAY_LENGTH(args), args, arguments));
     TSTR(arguments.Input.c_str(), "shader.frag");
     T(arguments.Width == 300);
     T(arguments.Height == 200);
 }
 
-UTEST(arguments_tests, parse_1) {
+UTEST(arguments, parse_1) {
     Arguments arguments;
+
     const char* args[] = {
         "liveglsl",
         "shader.frag",
     };
+
     T(!ArgumentsParse(ARRAY_LENGTH(args), args, arguments));
 }
 
@@ -43,7 +50,7 @@ void OnFileChanged(void* user_data, const char* file_path) {
     *callback_called = true;
 }
 
-UTEST(filewatcher_tests, add_watch_modify_0) {
+UTEST(filewatcher, add_watch_modify_0) {
     const char* file_path = "test_file.txt";
     std::ofstream file(file_path);
     file << "File dummy content";
@@ -69,7 +76,7 @@ UTEST(filewatcher_tests, add_watch_modify_0) {
     std::remove(file_path);
 }
 
-UTEST(filewatcher_tests, add_watch_modify_1) {
+UTEST(filewatcher, add_watch_modify_1) {
     const char* file_path = "test_file.txt";
     std::ofstream file(file_path);
     file << "File dummy content";
@@ -89,7 +96,7 @@ UTEST(filewatcher_tests, add_watch_modify_1) {
     std::remove(file_path);
 }
 
-UTEST(filewatcher_tests, add_watch_modify_2) {
+UTEST(filewatcher, add_watch_modify_2) {
     const char* file_path = "test_file.txt";
     std::ofstream file(file_path);
     file << "File dummy content";
@@ -114,6 +121,260 @@ UTEST(filewatcher_tests, add_watch_modify_2) {
     FileWatcherDestroy(watcher);
 
     std::remove(file_path);
+}
+
+UTEST(gui, component_parse_invalid) {
+    std::string line, uniform_line, error;
+    GUIComponent component;
+
+    line = "invalid_gui(-1, 2.5)";
+    uniform_line = "uniform float v0;";
+    T(!GUIComponentParse(0, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid GUI type name 'invalid_gui' at line 0");
+
+    line = "invalid_gui()";
+    uniform_line = "uniform float v0;";
+    T(!GUIComponentParse(0, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid GUI type name 'invalid_gui' at line 0");
+}
+
+UTEST(gui, component_parse_slider_1) {
+    std::string line, uniform_line, error;
+    GUIComponent component;
+
+    line = "slider1(-1, 2.5)";
+    uniform_line = "uniform float v0;";
+    T(GUIComponentParse(0, line, uniform_line, {}, component, error));
+    T(component.SliderRange.Start == -1);
+    T(component.SliderRange.End == 2.5);
+    T(component.UniformType == EGUIUniformTypeFloat);
+    T(error.empty());
+
+    line = "slider1()";
+    uniform_line = "uniform float v0;";
+    T(!GUIComponentParse(0, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '()'\nFormat should be @slider1(start_range, end_range) at line 0");
+
+    line = "slider1(5.0)";
+    uniform_line = "uniform float v0;";
+    T(!GUIComponentParse(2, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '(5.0)'\nFormat should be @slider1(start_range, end_range) at line 2");
+
+    line = "slider1(-1, 2.5)";
+    for (const auto& datatype : {"vec2", "vec3"}) {
+        uniform_line = "uniform " + std::string(datatype) + " v0;";
+        T(!GUIComponentParse(5, line, uniform_line, {}, component, error));
+        TSTR(error.c_str(), "GUI component count does not match uniform component count at line 5");
+    }
+}
+
+UTEST(gui, component_parse_slider_2) {
+    std::string line, uniform_line, error;
+    GUIComponent component;
+
+    line = "slider2(-1, 2.5)";
+    uniform_line = "uniform vec2 v0;";
+    T(GUIComponentParse(0, line, uniform_line, {}, component, error));
+    T(component.SliderRange.Start == -1);
+    T(component.SliderRange.End == 2.5);
+    T(component.UniformType == EGUIUniformTypeVec2);
+    T(error.empty());
+
+    line = "slider2()";
+    uniform_line = "uniform vec2 v0;";
+    T(!GUIComponentParse(0, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '()'\nFormat should be @slider2(start_range, end_range) at line 0");
+
+    line = "slider2(5.0)";
+    uniform_line = "uniform vec v0;";
+    T(!GUIComponentParse(2, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '(5.0)'\nFormat should be @slider2(start_range, end_range) at line 2");
+
+    line = "slider2(-1, 2.5)";
+    for (const auto& datatype : {"float", "vec3"}) {
+        uniform_line = "uniform " + std::string(datatype) + " v0;";
+        T(!GUIComponentParse(5, line, uniform_line, {}, component, error));
+        TSTR(error.c_str(), "GUI component count does not match uniform component count at line 5");
+    }
+}
+
+UTEST(gui, component_parse_slider_3) {
+    std::string line, uniform_line, error;
+    GUIComponent component;
+
+    line = "slider3(-1, 2.5)";
+    uniform_line = "uniform vec3 v0;";
+    T(GUIComponentParse(0, line, uniform_line, {}, component, error));
+    T(component.SliderRange.Start == -1);
+    T(component.SliderRange.End == 2.5);
+    T(component.UniformType == EGUIUniformTypeVec3);
+    T(error.empty());
+
+    line = "slider3()";
+    uniform_line = "uniform vec3 v0;";
+    T(!GUIComponentParse(0, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '()'\nFormat should be @slider3(start_range, end_range) at line 0");
+
+    line = "slider3(5.0)";
+    uniform_line = "uniform vec3 v0;";
+    T(!GUIComponentParse(2, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '(5.0)'\nFormat should be @slider3(start_range, end_range) at line 2");
+
+    line = "slider3(-1, 2.5)";
+    for (const auto& datatype : {"float", "vec2"}) {
+        uniform_line = "uniform " + std::string(datatype) + " v0;";
+        T(!GUIComponentParse(5, line, uniform_line, {}, component, error));
+        TSTR(error.c_str(), "GUI component count does not match uniform component count at line 5");
+    }
+}
+
+UTEST(gui, component_parse_drag_1) {
+    std::string line, uniform_line, error;
+    GUIComponent component;
+
+    line = "drag1(0.5, -1, 2.5)";
+    uniform_line = "uniform float v0;";
+    T(GUIComponentParse(0, line, uniform_line, {}, component, error));
+    T(component.DragRange.Speed == 0.5);
+    T(component.DragRange.Start == -1);
+    T(component.DragRange.End == 2.5);
+    T(component.UniformType == EGUIUniformTypeFloat);
+    T(error.empty());
+
+    line = "drag1()";
+    uniform_line = "uniform float v0;";
+    T(!GUIComponentParse(0, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '()'\nFormat should be @drag1(speed, start_range, end_range) at line 0");
+
+    line = "drag1(5.0)";
+    uniform_line = "uniform float v0;";
+    T(!GUIComponentParse(2, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '(5.0)'\nFormat should be @drag1(speed, start_range, end_range) at line 2");
+
+    line = "drag1(0.1, -1, 2.5)";
+    for (const auto& datatype : {"vec2", "vec3"}) {
+        uniform_line = "uniform " + std::string(datatype) + " v0;";
+        T(!GUIComponentParse(5, line, uniform_line, {}, component, error));
+        TSTR(error.c_str(), "GUI component count does not match uniform component count at line 5");
+    }
+}
+
+UTEST(gui, component_parse_drag_2) {
+    std::string line, uniform_line, error;
+    GUIComponent component;
+
+    line = "drag2(0.5, -1, 2.5)";
+    uniform_line = "uniform vec2 v0;";
+    T(GUIComponentParse(0, line, uniform_line, {}, component, error));
+    T(component.DragRange.Speed == 0.5);
+    T(component.DragRange.Start == -1);
+    T(component.DragRange.End == 2.5);
+    T(component.UniformType == EGUIUniformTypeVec2);
+    T(error.empty());
+
+    line = "drag2()";
+    uniform_line = "uniform vec2 v0;";
+    T(!GUIComponentParse(0, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '()'\nFormat should be @drag2(speed, start_range, end_range) at line 0");
+
+    line = "drag2(5.0)";
+    uniform_line = "uniform vec2 v0;";
+    T(!GUIComponentParse(2, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '(5.0)'\nFormat should be @drag2(speed, start_range, end_range) at line 2");
+
+    line = "drag2(0.1, -1, 2.5)";
+    for (const auto& datatype : {"float", "vec3"}) {
+        uniform_line = "uniform " + std::string(datatype) + " v0;";
+        T(!GUIComponentParse(5, line, uniform_line, {}, component, error));
+        TSTR(error.c_str(), "GUI component count does not match uniform component count at line 5");
+    }
+}
+
+UTEST(gui, component_parse_drag_3) {
+    std::string line, uniform_line, error;
+    GUIComponent component;
+
+    line = "drag3(0.5, -1, 2.5)";
+    uniform_line = "uniform vec3 v0;";
+    T(GUIComponentParse(0, line, uniform_line, {}, component, error));
+    T(component.DragRange.Speed == 0.5);
+    T(component.DragRange.Start == -1);
+    T(component.DragRange.End == 2.5);
+    T(component.UniformType == EGUIUniformTypeVec3);
+    T(error.empty());
+
+    line = "drag3()";
+    uniform_line = "uniform vec3 v0;";
+    T(!GUIComponentParse(0, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '()'\nFormat should be @drag3(speed, start_range, end_range) at line 0");
+
+    line = "drag3(5.0)";
+    uniform_line = "uniform vec3 v0;";
+    T(!GUIComponentParse(2, line, uniform_line, {}, component, error));
+    TSTR(error.c_str(), "Invalid format for GUI component data '(5.0)'\nFormat should be @drag3(speed, start_range, end_range) at line 2");
+
+    line = "drag3(0.1, -1, 2.5)";
+    for (const auto& datatype : {"float", "vec2"}) {
+        uniform_line = "uniform " + std::string(datatype) + " v0;";
+        T(!GUIComponentParse(5, line, uniform_line, {}, component, error));
+        TSTR(error.c_str(), "GUI component count does not match uniform component count at line 5");
+    }
+}
+
+UTEST(gui, component_parse_color_3) {
+    std::string line, uniform_line, error;
+    GUIComponent component;
+
+    line = "color3";
+    uniform_line = "uniform vec3 v0;";
+    T(GUIComponentParse(0, line, uniform_line, {}, component, error));
+    T(component.UniformType == EGUIUniformTypeVec3);
+    T(error.empty());
+
+#if 0
+    line = "color3()";
+    uniform_line = "uniform vec3 v0;";
+    T(GUIComponentParse(0, line, uniform_line, {}, component, error));
+
+    line = "color3(5.0)";
+    uniform_line = "uniform vec3 v0;";
+    T(GUIComponentParse(2, line, uniform_line, {}, component, error));
+#endif
+
+    line = "color3(0.1, -1, 2.5)";
+    for (const auto& datatype : {"float", "vec2"}) {
+        uniform_line = "uniform " + std::string(datatype) + " v0;";
+        T(!GUIComponentParse(5, line, uniform_line, {}, component, error));
+        TSTR(error.c_str(), "GUI component count does not match uniform component count at line 5");
+    }
+}
+
+UTEST(shader_parser, parse_0) {
+    std::vector<std::string> watches;
+    std::vector<RenderPass> render_passes;
+    std::vector<GUIComponent> components;
+    std::string error;
+
+    T(ShaderParserParse("../tests", "../tests/shader0.frag", watches, render_passes, components, error));
+
+    T(error.empty());
+    T(render_passes.size() == 3);
+
+    T(render_passes[0].Input.empty());
+    T(render_passes[0].Output == "pass0");
+    T(!render_passes[0].IsMain);
+    T(render_passes[0].Height == 256);
+    T(render_passes[0].Width == 256);
+
+    T(render_passes[1].Input == "pass0");
+    T(render_passes[1].Output == "pass1");
+    T(!render_passes[1].IsMain);
+    T(render_passes[1].Height == 512);
+    T(render_passes[1].Width == 512);
+
+    T(render_passes[2].Input == "pass1");
+    T(render_passes[2].Output == "main");
+    T(render_passes[2].IsMain);
 }
 
 UTEST_MAIN();

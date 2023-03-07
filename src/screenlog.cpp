@@ -29,7 +29,7 @@ ScreenLog ScreenLogCreate(float pixel_density) {
 }
 
 void ScreenLogDestroy(ScreenLog& screen_log) {
-    for(auto id : screen_log.TextHandles) {
+    for (auto id : screen_log.TextHandles) {
         glfonsUnbufferText(screen_log.FontContext, id);
     }
 
@@ -49,7 +49,7 @@ void ScreenLogRender(ScreenLog& screen_log, float pixel_density) {
     } else {
         if (!screen_log.LogBuffered) {
             fsuint id;
-            for(auto str : SplitString(screen_log.Log, '\n')) {
+            for (auto str : SplitString(screen_log.Log, '\n')) {
                 glfonsBufferText(screen_log.FontContext, str.c_str(), &id, FONS_EFFECT_NONE);
                 screen_log.TextHandles.push_back(id);
             }
@@ -83,10 +83,10 @@ void ScreenLogRenderFrameStatus(ScreenLog& screen_log, uint32_t screen_width, bo
 
     glfonsBufferText(screen_log.FontContext, buffer, &id, FONS_EFFECT_NONE);
     glfonsUpdateViewport(screen_log.FontContext);
+
     if (sixty_fps) {
         glfonsSetColor(screen_log.FontContext, 0.21, 1.0, 0.74, 1.0);
-    }
-    else {
+    } else {
         glfonsSetColor(screen_log.FontContext, 1.0, 0.0, 0.0, 1.0);
     }
 
@@ -100,7 +100,7 @@ void ScreenLogRenderFrameStatus(ScreenLog& screen_log, uint32_t screen_width, bo
 void ScreenLogClear(ScreenLog& screen_log) {
     screen_log.Log = "";
 
-    for(auto id : screen_log.TextHandles) {
+    for (auto id : screen_log.TextHandles) {
         glfonsUnbufferText(screen_log.FontContext, id);
     }
 
