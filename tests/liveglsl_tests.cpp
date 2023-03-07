@@ -355,7 +355,7 @@ UTEST(shader_parser, parse_0) {
     std::vector<GUIComponent> components;
     std::string error;
 
-    T(ShaderParserParse("../tests", "../tests/shader0.frag", watches, render_passes, components, error));
+    T(ShaderParserParse("tests", "tests/shader0.frag", watches, render_passes, components, error));
 
     T(error.empty());
     T(render_passes.size() == 3);
