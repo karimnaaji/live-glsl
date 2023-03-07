@@ -1,6 +1,7 @@
 #include "renderpass.h"
 
 #include <assert.h>
+#include <stb/stb_image.h>
 
 static const GLchar* DefaultVertexShader = R"END(
 in vec2 position;
@@ -19,6 +20,13 @@ void RenderPassDestroy(std::vector<RenderPass>& render_passes) {
 
         if (render_pass.FBO != 0) {
             glDeleteFramebuffers(1, &render_pass.FBO);
+        }
+
+        for (auto& texture : render_pass.Textures) {
+            if (texture.Id != 0) {
+                glDeleteTextures(1, &texture.Id);
+                stbi_image_free(texture.Data);
+            }
         }
     }
 
@@ -53,6 +61,24 @@ bool RenderPassCreate(std::vector<RenderPass>& render_passes, ScreenLog& screen_
             assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+
+        for (Texture& texture : render_pass.Textures) {
+            glGenTextures(1, &texture.Id);
+            glBindTexture(GL_TEXTURE_2D, texture.Id);
+
+            assert(texture.Width != 0);
+            assert(texture.Height != 0);
+            assert(texture.Data);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.Width, texture.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.Data);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
             glBindTexture(GL_TEXTURE_2D, 0);
         }
     }

@@ -95,10 +95,10 @@ void GUIInit(GLFWwindow* window_handle) {
     assert(font != nullptr);
 }
 
-bool GUINewFrame(std::vector<GUIComponent>& gui_components) {
+bool GUINewFrame(std::vector<GUIComponent>& gui_components, std::vector<GUITexture> textures) {
     ImGui_ImplGlfwGL3_NewFrame();
 
-    if (gui_components.size() == 0) return false;
+    if (gui_components.empty() && textures.empty()) return false;
 
     uint32_t components_in_use = 0;
     for (const GUIComponent& component : gui_components) {
@@ -106,7 +106,7 @@ bool GUINewFrame(std::vector<GUIComponent>& gui_components) {
             ++components_in_use;
     }
 
-    if (components_in_use == 0) return false;
+    if (components_in_use == 0 && textures.empty()) return false;
 
     ImGuiWindowFlags options = ImGuiWindowFlags_NoTitleBar
         | ImGuiWindowFlags_NoResize
@@ -177,6 +177,14 @@ bool GUINewFrame(std::vector<GUIComponent>& gui_components) {
             ImGui::ColorEdit4(component.UniformName.c_str(), (float*)&component.Vec4);
                 break;
         }
+    }
+
+    for (const auto& texture : textures) {
+        float aspect = (float)texture.Width / (float)texture.Height;
+        float max_width = ImGui::GetContentRegionAvailWidth();
+        float height = max_width / aspect;
+
+        ImGui::Image(texture.Id, ImVec2(max_width, height), ImVec2(0, 1), ImVec2(1, 0));
     }
 
     return true;
