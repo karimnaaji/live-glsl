@@ -7,8 +7,18 @@
 
 #include "shader.h"
 
+struct Texture {
+    int Width;
+    int Height;
+    int Channels;
+    unsigned char* Data {nullptr};
+    std::string Binding;
+    GLuint Id {0};
+};
+
 struct RenderPass {
     ShaderProgram Program;
+    std::vector<Texture> Textures;
     std::string ShaderSource;
     std::string Input;
     std::string Output;

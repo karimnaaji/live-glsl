@@ -202,7 +202,25 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                 }
             }
 
-            bool draw_gui = GUINewFrame(live_glsl->GUIComponents);
+            std::vector<GUITexture> textures;
+            for (const auto& render_pass : live_glsl->RenderPasses) {
+                if (render_pass.Texture) {
+                    GUITexture guiTexture;
+                    guiTexture.Width = render_pass.Width;
+                    guiTexture.Height = render_pass.Height;
+                    guiTexture.Id = (ImTextureID)(intptr_t)render_pass.Texture;
+                    textures.push_back(guiTexture);
+                }
+                for (const auto& texture : render_pass.Textures) {
+                    GUITexture guiTexture;
+                    guiTexture.Width = texture.Width;
+                    guiTexture.Height = texture.Height;
+                    guiTexture.Id = (ImTextureID)(intptr_t)texture.Id;
+                    textures.push_back(guiTexture);
+                }
+            }
+
+            bool draw_gui = GUINewFrame(live_glsl->GUIComponents, textures);
 
             for (const auto& render_pass : live_glsl->RenderPasses) {
                 uint32_t width = render_pass.IsMain ? live_glsl->WindowWidth : render_pass.Width;
@@ -225,12 +243,15 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                 // Mouse position, x relative to left, y relative to top
                 glUniform3f(glGetUniformLocation(render_pass.Program.Handle, "mouse"), x, y, mouse_left_state == GLFW_PRESS ? 1.0f : 0.0f);
 
+                int texture_unit = 0;
+
                 if (!render_pass.Input.empty()) {
                     for (const auto& other : live_glsl->RenderPasses) {
                         if (other.Output == render_pass.Input) {
-                            glActiveTexture(GL_TEXTURE0);
+                            glActiveTexture(GL_TEXTURE0 + texture_unit);
                             glBindTexture(GL_TEXTURE_2D, other.Texture);
-                            glUniform1i(glGetUniformLocation(render_pass.Program.Handle, render_pass.Input.c_str()), 0);
+                            glUniform1i(glGetUniformLocation(render_pass.Program.Handle, render_pass.Input.c_str()), texture_unit);
+                            ++texture_unit;
                         }
                     }
                 }
@@ -251,6 +272,13 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                             glUniform4f(uniform_location, gui_component.Vec4.x, gui_component.Vec4.y, gui_component.Vec4.z, gui_component.Vec4.w);
                             break;
                     }
+                }
+
+                for (const Texture& texture : render_pass.Textures) {
+                    glActiveTexture(GL_TEXTURE0 + texture_unit);
+                    glBindTexture(GL_TEXTURE_2D, texture.Id);
+                    glUniform1i(glGetUniformLocation(render_pass.Program.Handle, texture.Binding.c_str()), texture_unit);
+                    ++texture_unit;
                 }
 
                 glBindVertexArray(live_glsl->VaoId);

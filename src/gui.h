@@ -5,7 +5,9 @@
 #include <memory>
 #include <cassert>
 #include <cstring>
-#include "glm.hpp"
+
+#include <imgui/imgui.h>
+#include <glm.hpp>
 
 struct GLFWwindow;
 
@@ -118,8 +120,14 @@ inline uint32_t GUIUniformVariableComponents(EGUIUniformType uniform_type) {
     return 0;
 }
 
+struct GUITexture {
+    ImTextureID Id;
+    int Width;
+    int Height;
+};
+
 void GUIInit(GLFWwindow* window_handle);
-bool GUINewFrame(std::vector<GUIComponent>& gui_components);
+bool GUINewFrame(std::vector<GUIComponent>& gui_components, std::vector<GUITexture> textures);
 void GUIRender();
 void GUIDestroy();
 bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, const std::vector<GUIComponent>& previous_components, GUIComponent& out_component, std::string& out_parse_error);
