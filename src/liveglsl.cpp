@@ -11,7 +11,7 @@
 #include <stb/stb_image_write.h>
 
 void OnShaderChange(void* user_data, const char* file) {
-	LiveGLSL* live_glsl = (LiveGLSL*)user_data;
+    LiveGLSL* live_glsl = (LiveGLSL*)user_data;
 
     live_glsl->ShaderFileChanged.store(true);
 
@@ -162,6 +162,7 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
         glDeleteVertexArrays(1, &live_glsl->VaoId);
     }
 
+    RenderPassDestroy(live_glsl->RenderPasses);
     ScreenLogDestroy(live_glsl->ScreenLogInstance);
     FileWatcherDestroy(live_glsl->FileWatcher);
 
@@ -204,11 +205,11 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
 
             std::vector<GUITexture> textures;
             for (const auto& render_pass : live_glsl->RenderPasses) {
-                if (render_pass.Texture) {
+                if (render_pass.TextureId) {
                     GUITexture guiTexture;
                     guiTexture.Width = render_pass.Width;
                     guiTexture.Height = render_pass.Height;
-                    guiTexture.Id = (ImTextureID)(intptr_t)render_pass.Texture;
+                    guiTexture.Id = (ImTextureID)(intptr_t)render_pass.TextureId;
                     textures.push_back(guiTexture);
                 }
                 for (const auto& texture : render_pass.Textures) {
@@ -249,7 +250,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                     for (const auto& other : live_glsl->RenderPasses) {
                         if (other.Output == render_pass.Input) {
                             glActiveTexture(GL_TEXTURE0 + texture_unit);
-                            glBindTexture(GL_TEXTURE_2D, other.Texture);
+                            glBindTexture(GL_TEXTURE_2D, other.TextureId);
                             glUniform1i(glGetUniformLocation(render_pass.Program.Handle, render_pass.Input.c_str()), texture_unit);
                             ++texture_unit;
                         }

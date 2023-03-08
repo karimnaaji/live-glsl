@@ -26,7 +26,7 @@ struct RenderPass {
     uint32_t Width {0};
     uint32_t Height {0};
     GLuint FBO {0};
-    GLuint Texture {0};
+    GLuint TextureId {0};
 };
 
 void RenderPassDestroy(std::vector<RenderPass>& render_passes);
