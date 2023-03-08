@@ -14,8 +14,8 @@ void RenderPassDestroy(std::vector<RenderPass>& render_passes) {
     for (auto& render_pass : render_passes) {
         ShaderProgramDetach(render_pass.Program);
 
-        if (render_pass.Texture != 0) {
-            glDeleteTextures(1, &render_pass.Texture);
+        if (render_pass.TextureId != 0) {
+            glDeleteTextures(1, &render_pass.TextureId);
         }
 
         if (render_pass.FBO != 0) {
@@ -43,8 +43,8 @@ bool RenderPassCreate(std::vector<RenderPass>& render_passes, ScreenLog& screen_
             glGenFramebuffers(1, &render_pass.FBO);
             glBindFramebuffer(GL_FRAMEBUFFER, render_pass.FBO);
 
-            glGenTextures(1, &render_pass.Texture);
-            glBindTexture(GL_TEXTURE_2D, render_pass.Texture);
+            glGenTextures(1, &render_pass.TextureId);
+            glBindTexture(GL_TEXTURE_2D, render_pass.TextureId);
 
             assert(render_pass.Width != 0);
             assert(render_pass.Height != 0);
@@ -56,7 +56,7 @@ bool RenderPassCreate(std::vector<RenderPass>& render_passes, ScreenLog& screen_
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_pass.Texture, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_pass.TextureId, 0);
 
             assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
