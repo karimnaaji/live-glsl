@@ -2,6 +2,9 @@
 
 uniform vec2 resolution;
 
+@path(heightmap_0.png)
+uniform sampler2D heightmap;
+
 out vec4 outColor;
 
 void main() {

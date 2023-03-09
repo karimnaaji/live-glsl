@@ -99,7 +99,7 @@ bool ShaderParserParseTextures(const std::string& base_path, const std::string& 
     return true;
 }
 
-bool ShaderParserParseRenderPass(const std::string& prev_line, const std::string& line, uint32_t current_char, uint32_t line_number, FErrorReport report_error, std::vector<Texture>& textures, RenderPass& pass) {
+bool ShaderParserParseRenderPass(const std::string& prev_line, const std::string& line, uint32_t current_char, uint32_t line_number, FErrorReport report_error, RenderPass& pass) {
     char input[64] = {0};
     char output[64] = {0};
 
@@ -136,13 +136,10 @@ bool ShaderParserParseRenderPass(const std::string& prev_line, const std::string
     pass.Output = output;
     pass.Width = width;
     pass.Height = height;
-    pass.Textures = textures;
 
     if (pass.Output == "main") {
         pass.IsMain = true;
     }
-
-    textures.clear();
 
     return true;
 }
@@ -192,11 +189,15 @@ bool ShaderParserParse(const std::string& base_path, const std::string& path, st
                 }
 
                 pass->ShaderSource = std::move(source);
+                pass->Textures = std::move(textures);
+
                 source.clear();
+                textures.clear();
+
                 pass = nullptr;
             } else if (prev_line.substr(current_char + 1, current_char + 4) == "pass") {
                 RenderPass new_pass;
-                if (!ShaderParserParseRenderPass(prev_line, line, current_char, line_number, report_error, textures, new_pass)) {
+                if (!ShaderParserParseRenderPass(prev_line, line, current_char, line_number, report_error, new_pass)) {
                     return false;
                 }
 
@@ -221,7 +222,19 @@ bool ShaderParserParse(const std::string& base_path, const std::string& path, st
         ++line_number;
     }
 
-    if (render_passes.empty()) {
+    if (pass) {
+        uint32_t current_char = 0;
+        while (isspace(prev_line[current_char])) {
+            ++current_char;
+        }
+        if (current_char < prev_line.length() && prev_line[current_char] == '@') {
+            pass->ShaderSource = std::move(source);
+            pass->Textures = std::move(textures);
+        } else {
+            read_file_error = "Render pass " + pass->Output + " was declared without @pass_end";
+            return false;
+        }
+    } else  if (render_passes.empty()) {
         render_passes.emplace_back();
         render_passes.back().ShaderSource = std::move(source);
         render_passes.back().IsMain = true;

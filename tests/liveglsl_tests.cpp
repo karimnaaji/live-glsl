@@ -360,21 +360,33 @@ UTEST(shader_parser, parse_0) {
     T(error.empty());
     T(render_passes.size() == 3);
 
+    T(!render_passes[0].IsMain);
     T(render_passes[0].Input.empty());
     T(render_passes[0].Output == "pass0");
-    T(!render_passes[0].IsMain);
     T(render_passes[0].Height == 256);
     T(render_passes[0].Width == 256);
+    T(!render_passes[0].ShaderSource.empty());
+    T(!render_passes[0].Textures.empty());
+    T(render_passes[0].Textures[0].Width == 1653);
+    T(render_passes[0].Textures[0].Height == 1252)
+    T(render_passes[0].Textures[0].Data);
 
+    T(!render_passes[1].IsMain);
     T(render_passes[1].Input == "pass0");
     T(render_passes[1].Output == "pass1");
-    T(!render_passes[1].IsMain);
     T(render_passes[1].Height == 512);
     T(render_passes[1].Width == 512);
+    T(!render_passes[1].ShaderSource.empty());
+    T(render_passes[1].Textures.empty());
 
     T(render_passes[2].Input == "pass1");
     T(render_passes[2].Output == "main");
     T(render_passes[2].IsMain);
+    T(!render_passes[2].ShaderSource.empty());
+    T(!render_passes[2].Textures.empty());
+    T(render_passes[2].Textures[0].Width == 2320);
+    T(render_passes[2].Textures[0].Height == 1485)
+    T(render_passes[2].Textures[0].Data);
 }
 
 UTEST_MAIN();
