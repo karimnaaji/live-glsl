@@ -238,6 +238,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
 
                 glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
                 glViewport(0, 0, width, height);
+
                 glUniform2f(glGetUniformLocation(render_pass.Program.Handle, "resolution"), width, height);
                 glUniform1f(glGetUniformLocation(render_pass.Program.Handle, "time"), glfwGetTime());
                 glUniform1f(glGetUniformLocation(render_pass.Program.Handle, "pixel_ratio"), live_glsl->PixelDensity);
@@ -252,6 +253,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                             glActiveTexture(GL_TEXTURE0 + texture_unit);
                             glBindTexture(GL_TEXTURE_2D, other.TextureId);
                             glUniform1i(glGetUniformLocation(render_pass.Program.Handle, render_pass.Input.c_str()), texture_unit);
+                            glUniform2f(glGetUniformLocation(render_pass.Program.Handle, (render_pass.Input + "_resolution").c_str()), other.Width, other.Height);
                             ++texture_unit;
                         }
                     }
@@ -279,6 +281,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                     glActiveTexture(GL_TEXTURE0 + texture_unit);
                     glBindTexture(GL_TEXTURE_2D, texture.Id);
                     glUniform1i(glGetUniformLocation(render_pass.Program.Handle, texture.Binding.c_str()), texture_unit);
+                    glUniform2f(glGetUniformLocation(render_pass.Program.Handle, (texture.Binding + "_resolution").c_str()), texture.Width, texture.Height);
                     ++texture_unit;
                 }
 
