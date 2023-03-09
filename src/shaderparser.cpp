@@ -52,7 +52,7 @@ bool ShaderParserAmalgamate(const std::string& base_path, const std::string& pat
     return true;
 }
 
-bool ShaderParserParseTextures(const std::string& base_path, const std::string& prev_line, const std::string& line, uint32_t current_char, uint32_t line_number, FErrorReport report_error, std::vector<Texture>& textures) {
+bool ShaderParserParseTextures(const std::string& base_path, const std::string& prev_line, const std::string& line, uint32_t current_char, uint32_t line_number, FErrorReport report_error, std::vector<std::string>& watches, std::vector<Texture>& textures) {
     int last_parenthesis_index = -1;
     int first_parenthesis_index = -1;
 
@@ -91,8 +91,10 @@ bool ShaderParserParseTextures(const std::string& base_path, const std::string& 
         report_error("Failed to load texture at path " + path, line_number);
         return false;
     }
+    texture.Binding = uniform_tokens[2].substr(0, uniform_tokens[2].length() - 1);
 
     textures.push_back(texture);
+    watches.push_back(full_path);
 
     return true;
 }
@@ -180,7 +182,7 @@ bool ShaderParserParse(const std::string& base_path, const std::string& path, st
 
         if (current_char < prev_line.length() && prev_line[current_char] == '@') {
             if (prev_line.substr(current_char + 1, current_char + 4) == "path") {
-                if (!ShaderParserParseTextures(base_path, prev_line, line, current_char, line_number, report_error, textures)) {
+                if (!ShaderParserParseTextures(base_path, prev_line, line, current_char, line_number, report_error, watches, textures)) {
                     return false;
                 }
             } else if (prev_line.substr(current_char + 1, current_char + 8) == "pass_end") {
