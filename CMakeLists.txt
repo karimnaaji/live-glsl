@@ -1,13 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
 project(live-glsl)
 
+option(MACOS_ASAN "Enable ASAN on macOS" OFF)
+
 set(EXECUTABLE_NAME live-glsl)
 set(CMAKE_CXX_STANDARD 11)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     set(CMAKE_WIN32_EXECUTABLE ON)
 else()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wno-unused-result -Wno-deprecated-declarations")
+    if (MACOS_ASAN)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wno-unused-result -Wno-deprecated-declarations")
+    endif()
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/deps)
@@ -30,17 +36,17 @@ option(GLFW_INSTALL OFF)
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glfw)
 
 set(SOURCES
-	${CMAKE_SOURCE_DIR}/src/gui.cpp
-	${CMAKE_SOURCE_DIR}/src/filewatcher.cpp
-	${CMAKE_SOURCE_DIR}/src/shader.cpp
-	${CMAKE_SOURCE_DIR}/src/screenlog.cpp
-	${CMAKE_SOURCE_DIR}/src/liveglsl.cpp
-	${CMAKE_SOURCE_DIR}/src/renderpass.cpp
-	${CMAKE_SOURCE_DIR}/src/shaderparser.cpp
-	${CMAKE_SOURCE_DIR}/src/utils.cpp
-	${CMAKE_SOURCE_DIR}/src/arguments.cpp
-	${CMAKE_SOURCE_DIR}/deps/glfw/deps/glad.c
-	${CMAKE_SOURCE_DIR}/deps/getopt/src/getopt.c)
+    ${CMAKE_SOURCE_DIR}/src/gui.cpp
+    ${CMAKE_SOURCE_DIR}/src/filewatcher.cpp
+    ${CMAKE_SOURCE_DIR}/src/shader.cpp
+    ${CMAKE_SOURCE_DIR}/src/screenlog.cpp
+    ${CMAKE_SOURCE_DIR}/src/liveglsl.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderpass.cpp
+    ${CMAKE_SOURCE_DIR}/src/shaderparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils.cpp
+    ${CMAKE_SOURCE_DIR}/src/arguments.cpp
+    ${CMAKE_SOURCE_DIR}/deps/glfw/deps/glad.c
+    ${CMAKE_SOURCE_DIR}/deps/getopt/src/getopt.c)
 
 add_executable(${EXECUTABLE_NAME} ${CMAKE_SOURCE_DIR}/src/main.cpp ${SOURCES})
 

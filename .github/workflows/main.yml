@@ -29,7 +29,7 @@ jobs:
             brew install ninja
         - name: osx-make
           run: |
-            cmake -Bbuild . -G Ninja -DCMAKE_BUILD_TYPE=Release
+            cmake -Bbuild . -G Ninja -DMACOS_ASAN=1
             cmake --build build -j
         - name: osx-tests
           run: |
