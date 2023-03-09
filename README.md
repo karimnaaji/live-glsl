@@ -48,6 +48,10 @@ Render passes are a feature that allow you to define an input, output, width, an
 ```glsl
 @pass(render_pass_0, 512, 512)
 
+void main() {
+  ...
+}
+
 @pass_end
 
 @pass(main, render_pass_0)
