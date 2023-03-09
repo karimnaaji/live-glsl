@@ -1,6 +1,10 @@
 #include <string>
 #include <vector>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 #include "liveglsl.h"
 
 #if defined(_WIN32)
