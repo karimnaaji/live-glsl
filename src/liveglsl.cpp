@@ -46,7 +46,7 @@ void ReloadShaderIfChanged(LiveGLSL* live_glsl, std::string path, bool first_loa
         glfwPostEmptyEvent();
     }
 
-    live_glsl->ShaderFileChanged.store(false); 
+    live_glsl->ShaderFileChanged.store(false);
 }
 
 LiveGLSL* LiveGLSLCreate(const Arguments& args) {
@@ -112,7 +112,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
                 live_glsl->ShaderPath = path;
                 live_glsl->Args.Input = path;
                 live_glsl->BasePath = ExtractBasePath(path);
-            
+
                 ReloadShaderIfChanged(live_glsl, path, true);
             }
         });
@@ -121,7 +121,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
         int fb_height = 0;
         glfwGetFramebufferSize(live_glsl->GLFWWindowHandle, &fb_width, &fb_height);
         live_glsl->PixelDensity = (float)fb_width / (float)live_glsl->WindowWidth;
-        gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+        gladLoadGL(glfwGetProcAddress);
         glfwSwapInterval(1);
     }
 

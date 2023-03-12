@@ -8,7 +8,7 @@
 #include <mutex>
 #include <algorithm>
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #else
 #include <sys/stat.h>
 #include <unistd.h>

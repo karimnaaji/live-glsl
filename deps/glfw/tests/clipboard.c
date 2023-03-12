@@ -1,6 +1,6 @@
 //========================================================================
 // Clipboard test program
-// Copyright (c) Camilla Berglund <elmindreda@glfw.org>
+// Copyright (c) Camilla Löwy <elmindreda@glfw.org>
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -27,7 +27,9 @@
 //
 //========================================================================
 
-#include <glad/glad.h>
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 #include <stdio.h>
@@ -67,7 +69,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             {
                 const char* string;
 
-                string = glfwGetClipboardString(window);
+                string = glfwGetClipboardString(NULL);
                 if (string)
                     printf("Clipboard contains \"%s\"\n", string);
                 else
@@ -79,16 +81,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
             if (mods == MODIFIER)
             {
                 const char* string = "Hello GLFW World!";
-                glfwSetClipboardString(window, string);
+                glfwSetClipboardString(NULL, string);
                 printf("Setting clipboard to \"%s\"\n", string);
             }
             break;
     }
-}
-
-static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    glViewport(0, 0, width, height);
 }
 
 int main(int argc, char** argv)
@@ -128,11 +125,10 @@ int main(int argc, char** argv)
     }
 
     glfwMakeContextCurrent(window);
-    gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
+    gladLoadGL(glfwGetProcAddress);
     glfwSwapInterval(1);
 
     glfwSetKeyCallback(window, key_callback);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     glClearColor(0.5f, 0.5f, 0.5f, 0);
 

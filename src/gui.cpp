@@ -3,12 +3,12 @@
 #include "utils.h"
 #include "arial.ttf.h"
 
-#include "glad/glad.h"
-#include "GLFW/glfw3.h"
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
-#include "imgui/imgui.cpp"
-#include "imgui/imgui_draw.cpp"
-#include "imgui/imgui_impl_glfw_gl3.cpp"
+#include <imgui/imgui.cpp>
+#include <imgui/imgui_draw.cpp>
+#include <imgui/imgui_impl_glfw_gl3.cpp>
 
 void GUIInit(GLFWwindow* window_handle) {
     ImGui_ImplGlfwGL3_Init(window_handle, true);
@@ -169,7 +169,7 @@ bool GUINewFrame(std::vector<GUIComponent>& gui_components, std::vector<GUITextu
                 component.DragRange.Speed,
                 component.DragRange.Start,
                 component.DragRange.End);
-                break;                
+                break;
             case EGUIComponentTypeColor3:
             ImGui::ColorEdit3(component.UniformName.c_str(), (float*)&component.Vec3);
                 break;
