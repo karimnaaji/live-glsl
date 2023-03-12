@@ -7,6 +7,8 @@
 
 #include "liveglsl.h"
 
+#include <emscripten.h>
+
 #if defined(_WIN32)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     std::vector<std::string> args_parsed;
@@ -36,16 +38,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 #else
 int main(int argc, const char **argv) {
 #endif
+    EM_ASM({ Module.wasmTable = wasmTable; });
 
     Arguments args;
-    if (!ArgumentsParse(argc, argv, args)) {
-        return EXIT_FAILURE;
-    }
+    args.Input = "simple.frag";
+    // if (!ArgumentsParse(argc, argv, args)) {
+        // return EXIT_FAILURE;
+    // }
 
     LiveGLSL* live_glsl = LiveGLSLCreate(args);
-    if (!live_glsl) {
-        return EXIT_FAILURE;
-    }
+    // if (!live_glsl) {
+    //     return EXIT_FAILURE;
+    // }
 
     bool res = LiveGLSLRender(live_glsl);
     LiveGLSLDestroy(live_glsl);

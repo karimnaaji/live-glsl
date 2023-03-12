@@ -41,13 +41,13 @@ void ReloadShaderIfChanged(LiveGLSL* live_glsl, std::string path, bool first_loa
 
             live_glsl->RenderPasses = render_passes;
 
-            FileWatcherRemoveAllWatches(live_glsl->FileWatcher);
+            if (live_glsl->FileWatcher) {
+                FileWatcherRemoveAllWatches(live_glsl->FileWatcher);
 
-            for (const auto& watch : watches) {
-                FileWatcherAddWatch(live_glsl->FileWatcher, watch.c_str());
+                for (const auto& watch : watches) {
+                    FileWatcherAddWatch(live_glsl->FileWatcher, watch.c_str());
+                }
             }
-        } else if (!error.empty()) {
-            GUILog(live_glsl->GUI, error);
         }
 
         glfwPostEmptyEvent();
@@ -60,7 +60,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     LiveGLSL* live_glsl = new LiveGLSL();
 
     live_glsl->ShaderFileChanged.store(false);
-    live_glsl->FileWatcher = FileWatcherCreate(OnShaderChange, live_glsl, 16);
+    live_glsl->FileWatcher = nullptr; //FileWatcherCreate(OnShaderChange, live_glsl, 16);
     live_glsl->ShaderCompiled = false;
     live_glsl->ShaderPath = args.Input;
     live_glsl->WindowWidth = args.Width;
@@ -81,6 +81,9 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
             exit(EXIT_FAILURE);
         }
 
+        // glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+        // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -160,12 +163,14 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
              1.0f, -1.0f,
         };
 
-        glGenVertexArrays(1, &live_glsl->VaoId);
-        glBindVertexArray(live_glsl->VaoId);
+        // glGenVertexArrays(1, &live_glsl->VaoId);
+        // glBindVertexArray(live_glsl->VaoId);
         glGenBuffers(1, &live_glsl->VertexBufferId);
         glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     }
+
+    printf("Done init\n");
 
     return live_glsl;
 }
@@ -185,7 +190,9 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
     }
 
     RenderPassDestroy(live_glsl->RenderPasses);
-    FileWatcherDestroy(live_glsl->FileWatcher);
+    if (live_glsl->FileWatcher) {
+        FileWatcherDestroy(live_glsl->FileWatcher);
+    }
     GUIDestroy(live_glsl->GUI);
 
     delete live_glsl;
@@ -194,11 +201,14 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
 }
 
 int LiveGLSLRender(LiveGLSL* live_glsl) {
+    printf("Render loop start");
     double previous_time = glfwGetTime();
     uint32_t frame_count = 0;
 
     while (!glfwWindowShouldClose(live_glsl->GLFWWindowHandle)) {
-        ReloadShaderIfChanged(live_glsl, live_glsl->ShaderPath);
+        // ReloadShaderIfChanged(live_glsl, live_glsl->ShaderPath);
+
+        printf("Render loop loop");
 
         double x, y;
         glfwGetCursorPos(live_glsl->GLFWWindowHandle, &x, &y);
@@ -208,6 +218,8 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
         int mouse_left_state = glfwGetMouseButton(live_glsl->GLFWWindowHandle, GLFW_MOUSE_BUTTON_LEFT);
 
         if (live_glsl->ShaderCompiled) {
+
+#if 0
             for (GUIComponent& gui_component : live_glsl->GUIComponents) {
                 gui_component.IsInUse = false;
                 for (const auto& render_pass : live_glsl->RenderPasses) {
@@ -236,7 +248,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
         }
 
         GUINewFrame(live_glsl->GUI, live_glsl->GUIComponents, textures);
-
+#endif
         if (live_glsl->ShaderCompiled) {
             for (const auto& render_pass : live_glsl->RenderPasses) {
                 uint32_t width = render_pass.IsMain ? live_glsl->WindowWidth : render_pass.Width;
@@ -248,6 +260,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                 glBindFramebuffer(GL_FRAMEBUFFER, render_pass.FBO);
                 glClear(GL_COLOR_BUFFER_BIT);
 
+#if 0
                 assert(render_pass.Program.Handle != 0);
                 glUseProgram(render_pass.Program.Handle);
 
@@ -300,7 +313,8 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                     ++texture_unit;
                 }
 
-                glBindVertexArray(live_glsl->VaoId);
+                // glBindVertexArray(live_glsl->VaoId);
+                glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
 
                 for (auto& render_pass : live_glsl->RenderPasses) {
                     if (render_pass.IsMain) {
@@ -311,8 +325,10 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                 }
 
                 glDrawArrays(GL_TRIANGLES, 0, 6);
+#endif
             }
 
+#if 0
             live_glsl->IsContinuousRendering = false;
             for (const auto& render_pass : live_glsl->RenderPasses) {
                 live_glsl->IsContinuousRendering |= glGetUniformLocation(render_pass.Program.Handle, "time") != -1;
@@ -336,7 +352,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClear(GL_COLOR_BUFFER_BIT);
         }
-        
+#endif
         GUIRender(live_glsl->GUI);
 
         glfwSwapBuffers(live_glsl->GLFWWindowHandle);

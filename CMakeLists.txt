@@ -23,12 +23,17 @@ include_directories(${CMAKE_SOURCE_DIR}/deps/getopt/include)
 include_directories(${CMAKE_SOURCE_DIR}/tests)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
-option(GLFW_BUILD_EXAMPLES OFF)
-option(GLFW_BUILD_TESTS OFF)
-option(GLFW_BUILD_DOCS OFF)
-option(GLFW_INSTALL OFF)
+if (NOT EMSCRIPTEN)
+	option(GLFW_BUILD_EXAMPLES OFF)
+	option(GLFW_BUILD_TESTS OFF)
+	option(GLFW_BUILD_DOCS OFF)
+	option(GLFW_INSTALL OFF)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glfw)
+	add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glfw)
+else()
+    set(LFLAGS "${LFLAGS} -s USE_GLFW=3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ASSERTIONS=1")
+endif()
 
 set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/gui.cpp
@@ -45,17 +50,26 @@ set(SOURCES
 
 add_executable(${EXECUTABLE_NAME} ${CMAKE_SOURCE_DIR}/src/main.cpp ${SOURCES})
 
-target_link_libraries(${EXECUTABLE_NAME} glfw)
-
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-    set(OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-    set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
-    set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
-    set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
+if (EMSCRIPTEN)
+    set_target_properties(${EXECUTABLE_NAME} PROPERTIES LINK_FLAGS "${LFLAGS}")
+    set_target_properties(${EXECUTABLE_NAME} PROPERTIES SUFFIX ".html")
+  	set(EMSCRIPTEN_GENERATE_HTML ON)
+  	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/shaders/simple.frag@simple.frag")
 endif()
 
-if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
-    add_executable(${EXECUTABLE_NAME}-tests ${CMAKE_SOURCE_DIR}/tests/liveglsl_tests.cpp ${SOURCES})
+target_link_libraries(${EXECUTABLE_NAME} glfw)
 
-    target_link_libraries(${EXECUTABLE_NAME}-tests glfw ${GLFW_LIBRARIES})
+if (NOT EMSCRIPTEN)
+	if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+	    set(OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+	    set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
+	    set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
+	    set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
+	endif()
+
+	if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+	    add_executable(${EXECUTABLE_NAME}-tests ${CMAKE_SOURCE_DIR}/tests/liveglsl_tests.cpp ${SOURCES})
+
+	    target_link_libraries(${EXECUTABLE_NAME}-tests glfw ${GLFW_LIBRARIES})
+	endif()
 endif()

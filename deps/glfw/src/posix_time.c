@@ -34,6 +34,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#include <emscripten.h>
+
 
 //////////////////////////////////////////////////////////////////////////
 //////                       GLFW platform API                      //////

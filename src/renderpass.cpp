@@ -4,7 +4,14 @@
 #include <stb/stb_image.h>
 
 static const GLchar* DefaultVertexShader = R"END(
-in vec2 position;
+//in vec2 position;
+//void main() {
+//    gl_Position = vec4(position, 0.0, 1.0);
+//}
+precision mediump float;
+
+attribute vec2 position;
+
 void main() {
     gl_Position = vec4(position, 0.0, 1.0);
 }
@@ -81,6 +88,7 @@ bool RenderPassCreate(std::vector<RenderPass>& render_passes, std::string& error
 
             glBindTexture(GL_TEXTURE_2D, 0);
         }
+        printf("Done compiling render pass\n");
     }
 
     return true;
