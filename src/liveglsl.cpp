@@ -230,6 +230,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
 
             bool draw_gui = GUINewFrame(live_glsl->GUIComponents, textures);
 
+#if 0
             for (const auto& render_pass : live_glsl->RenderPasses) {
                 uint32_t width = render_pass.IsMain ? live_glsl->WindowWidth : render_pass.Width;
                 uint32_t height = render_pass.IsMain ? live_glsl->WindowHeight : render_pass.Height;
@@ -305,6 +306,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                 glDrawArrays(GL_TRIANGLES, 0, 6);
             }
 
+#endif
             live_glsl->IsContinuousRendering = false;
             for (const auto& render_pass : live_glsl->RenderPasses) {
                 live_glsl->IsContinuousRendering |= glGetUniformLocation(render_pass.Program.Handle, "time") != -1;

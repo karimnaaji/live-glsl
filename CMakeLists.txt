@@ -36,17 +36,19 @@ option(GLFW_INSTALL OFF)
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glfw)
 
 set(SOURCES
-	${CMAKE_SOURCE_DIR}/src/gui.cpp
-	${CMAKE_SOURCE_DIR}/src/filewatcher.cpp
-	${CMAKE_SOURCE_DIR}/src/shader.cpp
-	${CMAKE_SOURCE_DIR}/src/screenlog.cpp
-	${CMAKE_SOURCE_DIR}/src/liveglsl.cpp
-	${CMAKE_SOURCE_DIR}/src/renderpass.cpp
-	${CMAKE_SOURCE_DIR}/src/shaderparser.cpp
-	${CMAKE_SOURCE_DIR}/src/utils.cpp
-	${CMAKE_SOURCE_DIR}/src/arguments.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui.cpp
+    ${CMAKE_SOURCE_DIR}/src/filewatcher.cpp
+    ${CMAKE_SOURCE_DIR}/src/shader.cpp
+    ${CMAKE_SOURCE_DIR}/src/screenlog.cpp
+    ${CMAKE_SOURCE_DIR}/src/liveglsl.cpp
+    ${CMAKE_SOURCE_DIR}/src/renderpass.cpp
+    ${CMAKE_SOURCE_DIR}/src/shaderparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils.cpp
+    ${CMAKE_SOURCE_DIR}/src/arguments.cpp
     ${CMAKE_SOURCE_DIR}/deps/glad/src/gl.c
-	${CMAKE_SOURCE_DIR}/deps/getopt/src/getopt.c)
+    ${CMAKE_SOURCE_DIR}/deps/microui/microui.c
+    ${CMAKE_SOURCE_DIR}/deps/microui/renderer.c
+    ${CMAKE_SOURCE_DIR}/deps/getopt/src/getopt.c)
 
 add_executable(${EXECUTABLE_NAME} ${CMAKE_SOURCE_DIR}/src/main.cpp ${SOURCES})
 
