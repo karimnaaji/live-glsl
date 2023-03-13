@@ -1,4 +1,9 @@
 uniform vec2 resolution;
+uniform vec3 mouse;
+uniform float time;
+
+@slider1(0, 1)
+uniform float p;
 
 out vec4 color;
 

@@ -32,7 +32,9 @@ if (NOT EMSCRIPTEN)
 	add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glfw)
 else()
     set(LFLAGS "${LFLAGS} -s USE_GLFW=3")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s ASSERTIONS=1")
+    set(LFLAGS "${LFLAGS} -s ASSERTIONS=1")
+    set(LFLAGS "${LFLAGS} -s MAX_WEBGL_VERSION=2")
+    set(LFLAGS "${LFLAGS} -s ALLOW_MEMORY_GROWTH=1")
 endif()
 
 set(SOURCES

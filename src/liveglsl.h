@@ -25,6 +25,9 @@ struct LiveGLSL {
     std::atomic<bool> ShaderFileChanged;
     bool ShaderCompiled;
     bool IsContinuousRendering;
+    double PreviousTime;
+    uint32_t FrameCount {0};
+    bool SixtyFps {false};
 };
 
 LiveGLSL* LiveGLSLCreate(const Arguments& args);

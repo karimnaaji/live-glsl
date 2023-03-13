@@ -38,8 +38,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 #else
 int main(int argc, const char **argv) {
 #endif
-    EM_ASM({ Module.wasmTable = wasmTable; });
-
     Arguments args;
     args.Input = "simple.frag";
     // if (!ArgumentsParse(argc, argv, args)) {

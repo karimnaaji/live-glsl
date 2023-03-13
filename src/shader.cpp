@@ -73,6 +73,7 @@ bool ShaderProgramCreate(ShaderProgram& shader_program, const std::string& fragm
 }
 
 void ShaderProgramDetach(const ShaderProgram& shader_program) {
+    return;
     if (shader_program.VertexShaderHandle) {
         glDetachShader(shader_program.VertexShaderHandle, GL_VERTEX_SHADER);
     }
