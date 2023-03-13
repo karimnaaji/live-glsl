@@ -30,4 +30,4 @@ struct RenderPass {
 };
 
 void RenderPassDestroy(std::vector<RenderPass>& render_passes);
-bool RenderPassCreate(std::vector<RenderPass>& render_passes, ScreenLog& screen_log);
+bool RenderPassCreate(std::vector<RenderPass>& render_passes, std::string& error);

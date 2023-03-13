@@ -14,7 +14,7 @@ void ShaderProgramDestroy(ShaderProgram& shader_program) {
     }
 }
 
-GLuint ShaderProgramCompile(const std::string src, GLenum type, ScreenLog& screen_log) {
+GLuint ShaderProgramCompile(const std::string src, GLenum type, std::string& error) {
     GLint compile_status;
     GLuint shader = glCreateShader(type);
     const GLchar* source = (const GLchar*) src.c_str();
@@ -30,24 +30,20 @@ GLuint ShaderProgramCompile(const std::string src, GLenum type, ScreenLog& scree
         char info[8096];
         glGetShaderInfoLog(shader, length, NULL, info);
         
-        fprintf(stderr, "%s\n", info);
-        
-        ScreenLogBuffer(screen_log, info);
+        error = info;
 
         glDeleteShader(shader);
         return 0;
     }
 
-    ScreenLogClear(screen_log);
-
     return shader;
 }
 
-bool ShaderProgramCreate(ShaderProgram& shader_program, const std::string& fragment_source, const std::string& vertex_source, ScreenLog& screen_log) {
+bool ShaderProgramCreate(ShaderProgram& shader_program, const std::string& fragment_source, const std::string& vertex_source, std::string& error) {
     std::string shader_prelude = "#version 150\n";
 
-    shader_program.VertexShaderHandle = ShaderProgramCompile(shader_prelude + vertex_source, GL_VERTEX_SHADER, screen_log);
-    shader_program.FragmentShaderHandle = ShaderProgramCompile(shader_prelude + fragment_source, GL_FRAGMENT_SHADER, screen_log);
+    shader_program.VertexShaderHandle = ShaderProgramCompile(shader_prelude + vertex_source, GL_VERTEX_SHADER, error);
+    shader_program.FragmentShaderHandle = ShaderProgramCompile(shader_prelude + fragment_source, GL_FRAGMENT_SHADER, error);
 
     if (!shader_program.FragmentShaderHandle || !shader_program.VertexShaderHandle) {
         ShaderProgramDestroy(shader_program);
@@ -68,13 +64,11 @@ bool ShaderProgramCreate(ShaderProgram& shader_program, const std::string& fragm
     glGetProgramiv(shader_program.Handle, GL_LINK_STATUS, &is_linked);
 
     if (is_linked == GL_FALSE) {
-        fprintf(stderr, "Failed to link program:\n%s", fragment_source.c_str());
-        ScreenLogBuffer(screen_log, "Error linking program");
+        error = "Error linking program";
         ShaderProgramDestroy(shader_program);
         return false;
     }
 
-    ScreenLogClear(screen_log);
     return true;
 }
 

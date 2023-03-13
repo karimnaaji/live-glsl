@@ -32,15 +32,22 @@ void ReloadShaderIfChanged(LiveGLSL* live_glsl, std::string path, bool first_loa
             ScreenLogBuffer(live_glsl->ScreenLogInstance, read_file_error.c_str());
         }
     } else {
-        RenderPassDestroy(live_glsl->RenderPasses);
+        std::string error;
+        live_glsl->ShaderCompiled = RenderPassCreate(render_passes, error);
 
-        live_glsl->ShaderCompiled = RenderPassCreate(render_passes, live_glsl->ScreenLogInstance);
-        live_glsl->RenderPasses = render_passes;
+        if (live_glsl->ShaderCompiled) {
+            RenderPassDestroy(live_glsl->RenderPasses);
+            ScreenLogClear(live_glsl->ScreenLogInstance);
 
-        FileWatcherRemoveAllWatches(live_glsl->FileWatcher);
+            live_glsl->RenderPasses = render_passes;
 
-        for (const auto& watch : watches) {
-            FileWatcherAddWatch(live_glsl->FileWatcher, watch.c_str());
+            FileWatcherRemoveAllWatches(live_glsl->FileWatcher);
+
+            for (const auto& watch : watches) {
+                FileWatcherAddWatch(live_glsl->FileWatcher, watch.c_str());
+            }
+        } else if (!error.empty()) {
+            ScreenLogBuffer(live_glsl->ScreenLogInstance, error.c_str());
         }
 
         glfwPostEmptyEvent();
@@ -330,7 +337,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
         }
 
         ScreenLogRender(live_glsl->ScreenLogInstance, live_glsl->PixelDensity);
-
+        
         glfwSwapBuffers(live_glsl->GLFWWindowHandle);
 
         if (live_glsl->IsContinuousRendering) {

@@ -4,6 +4,7 @@
 #include "arguments.h"
 #include "renderpass.h"
 #include "filewatcher.h"
+#include "screenlog.h"
 
 #include <glad/gl.h>
 #include <atomic>

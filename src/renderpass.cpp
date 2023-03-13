@@ -33,9 +33,9 @@ void RenderPassDestroy(std::vector<RenderPass>& render_passes) {
     render_passes.clear();
 }
 
-bool RenderPassCreate(std::vector<RenderPass>& render_passes, ScreenLog& screen_log) {
+bool RenderPassCreate(std::vector<RenderPass>& render_passes, std::string& error) {
     for (auto& render_pass : render_passes) {
-        if (!ShaderProgramCreate(render_pass.Program, render_pass.ShaderSource, DefaultVertexShader, screen_log)) {
+        if (!ShaderProgramCreate(render_pass.Program, render_pass.ShaderSource, DefaultVertexShader, error)) {
             return false;
         }
 
