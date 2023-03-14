@@ -69,13 +69,7 @@ It's important to note that the order of render passes isn't automatically resol
 
 ![](images/screenshot3.png)
 
-GUI elements are defined annotations that should be placed directly before the uniform statement that they are associated with in the shader code. These elements include: `slider1`, `slider2`, `slider3`, `slider4`, `drag1`, `drag2`, `drag3`, `drag4`, `color3`, `color4`. Sliders and drag can be used to adjust a uniform value with a visual slider and drag control and color pickers allow to select a color value for a uniform input. GUI elements should be preceded by an `@` and immediately followed by their parameters in parenthesis.
-
-Drag types follow the syntax `drag(speed, min_value, max_value)`. For example:
-```
-@drag2(0.1, 0.0, 1.0)
-uniform vec2 uniform_name;
-```
+GUI elements are defined annotations that should be placed directly before the uniform statement that they are associated with in the shader code. These elements include: `slider1`, `slider2`, `slider3`, `slider4`, , `color3`, `color4`. Sliders can be used to adjust a uniform value with a visual slider and color pickers allow to select a color value for a uniform input. GUI elements should be preceded by an `@` and immediately followed by their parameters in parenthesis.
 
 Slider types follow the syntax `slider(min_value, max_value)`. For example:
 ```

@@ -486,14 +486,6 @@ bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_li
         out_component.Type = EGUIComponentTypeSlider3;
     } else if (component_name == "slider4") {
         out_component.Type = EGUIComponentTypeSlider4;
-    } else if (component_name == "drag1") {
-        out_component.Type = EGUIComponentTypeDrag1;
-    } else if (component_name == "drag2") {
-        out_component.Type = EGUIComponentTypeDrag2;
-    } else if (component_name == "drag3") {
-        out_component.Type = EGUIComponentTypeDrag3;
-    } else if (component_name == "drag4") {
-        out_component.Type = EGUIComponentTypeDrag4;
     } else if (component_name == "color3") {
         out_component.Type = EGUIComponentTypeColor3;
     } else if (component_name == "color4") {
@@ -515,28 +507,12 @@ bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_li
                 ReportError(error);
                 return false;
             }
-        } else if (GUIIsDragType(out_component.Type)) {
-            int scanned = sscanf(component_data.c_str(), "(%f, %f, %f)",
-                &out_component.DragRange.Speed,
-                &out_component.DragRange.Start,
-                &out_component.DragRange.End);
-            if (scanned != 3) {
-                std::string error;
-                error += "Invalid format for GUI component data '" + component_data + "'\n";
-                error += "Format should be @" + component_name + "(speed, start_range, end_range)";
-                ReportError(error);
-                return false;
-            }
         }
     } else {
         // Initialize the data with convenient defaults
         if (GUIIsSliderType(out_component.Type)) {
             out_component.SliderRange.Start = 0.0f;
             out_component.SliderRange.End = 1.0f;
-        } else if (GUIIsDragType(out_component.Type)) {
-            out_component.DragRange.Speed = 0.05f;
-            out_component.DragRange.Start = 0.0f;
-            out_component.DragRange.End = 1.0f;
         }
     }
 
