@@ -106,10 +106,12 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
             int window_height = 0;
             glfwGetWindowSize(live_glsl->GLFWWindowHandle, &window_width, &window_height);
             live_glsl->PixelDensity = (float)fb_width / (float)window_width;
+            GUIResize(live_glsl->GUI, window_width, window_height);
         });
 
         glfwSetKeyCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
             if (key == GLFW_KEY_ESCAPE) glfwSetWindowShouldClose(window, GL_TRUE);
+            GUIKeyCallback(window, key, scancode, action, mods);
         });
 
         glfwSetDropCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* window, int count, const char** paths) {
@@ -123,6 +125,11 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
                 ReloadShaderIfChanged(live_glsl, path, true);
             }
         });
+        
+        glfwSetMouseButtonCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* window, int button, int action, int mods) {
+            LiveGLSL* live_glsl = static_cast<LiveGLSL*>(glfwGetWindowUserPointer(window));
+            GUIMouseButtonCallback(live_glsl->GUI, button, action, mods);
+        });
 
         int fb_width = 0;
         int fb_height = 0;
@@ -134,7 +141,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
 
     live_glsl->ScreenLogInstance = ScreenLogCreate(live_glsl->PixelDensity);
 
-    GUIInit(live_glsl->GLFWWindowHandle);
+    live_glsl->GUI = GUIInit(live_glsl->GLFWWindowHandle, args.Width, args.Height);
 
     ReloadShaderIfChanged(live_glsl, args.Input, true);
 
@@ -172,6 +179,7 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
     RenderPassDestroy(live_glsl->RenderPasses);
     ScreenLogDestroy(live_glsl->ScreenLogInstance);
     FileWatcherDestroy(live_glsl->FileWatcher);
+    GUIDestroy(live_glsl->GUI);
 
     delete live_glsl;
 
@@ -216,21 +224,20 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                     GUITexture guiTexture;
                     guiTexture.Width = render_pass.Width;
                     guiTexture.Height = render_pass.Height;
-                    guiTexture.Id = (ImTextureID)(intptr_t)render_pass.TextureId;
+                    guiTexture.Id = render_pass.TextureId;
                     textures.push_back(guiTexture);
                 }
                 for (const auto& texture : render_pass.Textures) {
                     GUITexture guiTexture;
                     guiTexture.Width = texture.Width;
                     guiTexture.Height = texture.Height;
-                    guiTexture.Id = (ImTextureID)(intptr_t)texture.Id;
+                    guiTexture.Id = texture.Id;
                     textures.push_back(guiTexture);
                 }
             }
 
-            bool draw_gui = GUINewFrame(live_glsl->GUIComponents, textures);
+            bool draw_gui = GUINewFrame(live_glsl->GUI, live_glsl->GUIComponents, textures);
 
-#if 0
             for (const auto& render_pass : live_glsl->RenderPasses) {
                 uint32_t width = render_pass.IsMain ? live_glsl->WindowWidth : render_pass.Width;
                 uint32_t height = render_pass.IsMain ? live_glsl->WindowHeight : render_pass.Height;
@@ -306,7 +313,6 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                 glDrawArrays(GL_TRIANGLES, 0, 6);
             }
 
-#endif
             live_glsl->IsContinuousRendering = false;
             for (const auto& render_pass : live_glsl->RenderPasses) {
                 live_glsl->IsContinuousRendering |= glGetUniformLocation(render_pass.Program.Handle, "time") != -1;
@@ -318,7 +324,7 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                 }
 
                 if (draw_gui) {
-                    GUIRender();
+                    GUIRender(live_glsl->GUI);
                 }
             }
 

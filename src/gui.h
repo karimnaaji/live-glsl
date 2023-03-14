@@ -6,8 +6,9 @@
 #include <cassert>
 #include <cstring>
 
-#include <imgui/imgui.h>
 #include <glm.hpp>
+
+#include <glad/gl.h>
 
 struct GLFWwindow;
 
@@ -121,13 +122,18 @@ inline uint32_t GUIUniformVariableComponents(EGUIUniformType uniform_type) {
 }
 
 struct GUITexture {
-    ImTextureID Id;
+    GLuint Id;
     int Width;
     int Height;
 };
 
-void GUIInit(GLFWwindow* window_handle);
-bool GUINewFrame(std::vector<GUIComponent>& gui_components, std::vector<GUITexture> textures);
-void GUIRender();
-void GUIDestroy();
+typedef void* HGUI;
+
+HGUI GUIInit(GLFWwindow* window_handle, int width, int height);
+void GUIKeyCallback(HGUI gui, int key, int scancode, int action, int mods);
+void GUIMouseButtonCallback(HGUI gui, int button, int action, int mods);
+bool GUINewFrame(HGUI gui, std::vector<GUIComponent>& gui_components, std::vector<GUITexture> textures);
+void GUIRender(HGUI gui);
+void GUIResize(HGUI, int widht, int height);
+void GUIDestroy(HGUI gui);
 bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, const std::vector<GUIComponent>& previous_components, GUIComponent& out_component, std::string& out_parse_error);

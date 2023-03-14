@@ -47,7 +47,6 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/arguments.cpp
     ${CMAKE_SOURCE_DIR}/deps/glad/src/gl.c
     ${CMAKE_SOURCE_DIR}/deps/microui/microui.c
-    ${CMAKE_SOURCE_DIR}/deps/microui/renderer.c
     ${CMAKE_SOURCE_DIR}/deps/getopt/src/getopt.c)
 
 add_executable(${EXECUTABLE_NAME} ${CMAKE_SOURCE_DIR}/src/main.cpp ${SOURCES})

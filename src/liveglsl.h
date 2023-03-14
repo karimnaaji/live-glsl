@@ -16,6 +16,7 @@ struct LiveGLSL {
     Arguments Args;
     ScreenLog ScreenLogInstance;
     HFileWatcher FileWatcher;
+    HGUI GUI;
     std::string ShaderPath;
     std::string BasePath;
     int WindowWidth;
