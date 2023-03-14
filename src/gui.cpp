@@ -313,6 +313,16 @@ void GUIResize(HGUI handle, int width, int height) {
     gui->Height = height;
 }
 
+static int UInt8Slider(mu_Context *ctx, unsigned char *value, int low, int high) {
+    static float tmp;
+    mu_push_id(ctx, &value, sizeof(value));
+    tmp = *value;
+    int res = mu_slider_ex(ctx, &tmp, low, high, 0, "%.0f", MU_OPT_ALIGNCENTER);
+    *value = tmp;
+    mu_pop_id(ctx);
+    return res;
+}
+
 bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::vector<GUITexture> textures) {
     if (gui_components.empty() && textures.empty()) return false;
 
@@ -325,76 +335,86 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
     if (components_in_use == 0 && textures.empty()) return false;
 
     GUI* gui = (GUI*)handle;
+    int window_w = 300;
+    int window_2 = (window_w / 2.0f);
+    int window_3 = (window_w / 3.0f);
+    int window_4 = (window_w / 4.0f);
+    int window_5 = (window_w / 5.0f);
     mu_begin(gui->Ctx);
-    if (mu_begin_window(gui->Ctx, "Demo Window", mu_rect(0, 0, 300, gui->Height))) {
+    if (mu_begin_window(gui->Ctx, "Demo Window", mu_rect(0, 0, window_w, gui->Height))) {
         for (GUIComponent& component : gui_components) {
             if (!component.IsInUse) continue;
             switch (component.Type) {
                 case EGUIComponentTypeSlider1:
-                    mu_layout_row(gui->Ctx, 2, (int[]) { 100, 100 }, 0);
-                    mu_text(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec1, component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     break;
                 case EGUIComponentTypeSlider2:
-                    mu_layout_row(gui->Ctx, 3, (int[]) { 100, 100, 100 }, 0);
-                    mu_text(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_row(gui->Ctx, 2, (int[]) { window_2, -1 }, 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec2[0], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec2[1], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     break;
                 case EGUIComponentTypeSlider3:
-                    mu_layout_row(gui->Ctx, 4, (int[]) { 100, 100, 100, 100 }, 0);
-                    mu_text(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_row(gui->Ctx, 3, (int[]) { window_3, window_3, -1 }, 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec3[0], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec3[1], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec3[2], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     break;
                 case EGUIComponentTypeSlider4:
-                    mu_layout_row(gui->Ctx, 5, (int[]) { 100, 100, 100, 100, 100 }, 0);
-                    mu_text(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_row(gui->Ctx, 4, (int[]) { window_4, window_4, window_4, -1 }, 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec4[0], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec4[1], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec4[2], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec4[3], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     break;
-#if 0
-                case EGUIComponentTypeDrag1:
-                ImGui::DragFloat(component.UniformName.c_str(),
-                    (float*)&component.Vec1,
-                    component.DragRange.Speed,
-                    component.DragRange.Start,
-                    component.DragRange.End);
-                    break;
-                case EGUIComponentTypeDrag2:
-                ImGui::DragFloat2(component.UniformName.c_str(),
-                    (float*)&component.Vec2,
-                    component.DragRange.Speed,
-                    component.DragRange.Start,
-                    component.DragRange.End);
-                    break;
-                case EGUIComponentTypeDrag3:
-                ImGui::DragFloat3(component.UniformName.c_str(),
-                    (float*)&component.Vec3,
-                    component.DragRange.Speed,
-                    component.DragRange.Start,
-                    component.DragRange.End);
-                    break;
-                case EGUIComponentTypeDrag4:
-                ImGui::DragFloat4(component.UniformName.c_str(),
-                    (float*)&component.Vec4,
-                    component.DragRange.Speed,
-                    component.DragRange.Start,
-                    component.DragRange.End);
-                    break;
-
                 case EGUIComponentTypeColor3:
-                ImGui::ColorEdit3(component.UniformName.c_str(), (float*)&component.Vec3);
+                {
+                    mu_layout_row(gui->Ctx, 4, (int[]) { window_4, window_4, window_4, -1 }, 0);
+
+                    mu_Color color;
+                    color.r = (uint8_t)(component.Vec3.r * 255.0f);
+                    color.g = (uint8_t)(component.Vec3.g * 255.0f);
+                    color.b = (uint8_t)(component.Vec3.b * 255.0f);
+                    color.a = 255;
+                    
+                    UInt8Slider(gui->Ctx, &color.r, 0, 255);
+                    UInt8Slider(gui->Ctx, &color.g, 0, 255);
+                    UInt8Slider(gui->Ctx, &color.b, 0, 255);
+                    
+                    mu_draw_rect(gui->Ctx, mu_layout_next(gui->Ctx), color);
+                    
+                    component.Vec3.r = color.r / 255.0f;
+                    component.Vec3.g = color.g / 255.0f;
+                    component.Vec3.b = color.b / 255.0f;
+                    
                     break;
+                }
                 case EGUIComponentTypeColor4:
-                ImGui::ColorEdit4(component.UniformName.c_str(), (float*)&component.Vec4);
+                {
+                    mu_layout_row(gui->Ctx, 5, (int[]) { window_5, window_5, window_5, window_5, -1 }, 0);
+                    
+                    mu_Color color;
+                    color.r = (uint8_t)(component.Vec4.r * 255.0f);
+                    color.g = (uint8_t)(component.Vec4.g * 255.0f);
+                    color.b = (uint8_t)(component.Vec4.b * 255.0f);
+                    color.a = (uint8_t)(component.Vec4.a * 255.0f);
+                    
+                    UInt8Slider(gui->Ctx, &color.r, 0, 255);
+                    UInt8Slider(gui->Ctx, &color.g, 0, 255);
+                    UInt8Slider(gui->Ctx, &color.b, 0, 255);
+                    UInt8Slider(gui->Ctx, &color.a, 0, 255);
+                    
+                    mu_draw_rect(gui->Ctx, mu_layout_next(gui->Ctx), color);
+                    
+                    component.Vec4.r = color.r / 255.0f;
+                    component.Vec4.g = color.g / 255.0f;
+                    component.Vec4.b = color.b / 255.0f;
+                    component.Vec4.a = color.a / 255.0f;
                     break;
-#endif
+                }
             }
         }
+
 #if 0
         for (const auto& texture : textures) {
             float aspect = (float)texture.Width / (float)texture.Height;
@@ -407,99 +427,6 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
         mu_end_window(gui->Ctx);
     }
     mu_end(gui->Ctx);
-    
-#if 0
-    ImGui_ImplGlfwGL3_NewFrame();
-
-    if (gui_components.empty() && textures.empty()) return false;
-
-    uint32_t components_in_use = 0;
-    for (const GUIComponent& component : gui_components) {
-        if (component.IsInUse)
-            ++components_in_use;
-    }
-
-    if (components_in_use == 0 && textures.empty()) return false;
-
-    ImGuiWindowFlags options = ImGuiWindowFlags_NoTitleBar
-        | ImGuiWindowFlags_NoResize
-        | ImGuiWindowFlags_NoMove;
-
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::Begin("Fixed Overlay", nullptr, ImVec2(0, 0), 0.3f, options);
-
-    for (GUIComponent& component : gui_components) {
-        if (!component.IsInUse) continue;
-        switch (component.Type) {
-            case EGUIComponentTypeSlider1:
-            ImGui::SliderFloat(component.UniformName.c_str(),
-                (float*)&component.Vec1,
-                component.SliderRange.Start,
-                component.SliderRange.End);
-            break;
-            case EGUIComponentTypeSlider2:
-            ImGui::SliderFloat2(component.UniformName.c_str(),
-                (float*)&component.Vec2,
-                component.SliderRange.Start,
-                component.SliderRange.End);
-                break;
-            case EGUIComponentTypeSlider3:
-            ImGui::SliderFloat3(component.UniformName.c_str(),
-                (float*)&component.Vec3,
-                component.SliderRange.Start,
-                component.SliderRange.End);
-                break;
-            case EGUIComponentTypeSlider4:
-            ImGui::SliderFloat4(component.UniformName.c_str(),
-                (float*)&component.Vec4,
-                component.SliderRange.Start,
-                component.SliderRange.End);
-                break;
-            case EGUIComponentTypeDrag1:
-            ImGui::DragFloat(component.UniformName.c_str(),
-                (float*)&component.Vec1,
-                component.DragRange.Speed,
-                component.DragRange.Start,
-                component.DragRange.End);
-                break;
-            case EGUIComponentTypeDrag2:
-            ImGui::DragFloat2(component.UniformName.c_str(),
-                (float*)&component.Vec2,
-                component.DragRange.Speed,
-                component.DragRange.Start,
-                component.DragRange.End);
-                break;
-            case EGUIComponentTypeDrag3:
-            ImGui::DragFloat3(component.UniformName.c_str(),
-                (float*)&component.Vec3,
-                component.DragRange.Speed,
-                component.DragRange.Start,
-                component.DragRange.End);
-                break;
-            case EGUIComponentTypeDrag4:
-            ImGui::DragFloat4(component.UniformName.c_str(),
-                (float*)&component.Vec4,
-                component.DragRange.Speed,
-                component.DragRange.Start,
-                component.DragRange.End);
-                break;
-            case EGUIComponentTypeColor3:
-            ImGui::ColorEdit3(component.UniformName.c_str(), (float*)&component.Vec3);
-                break;
-            case EGUIComponentTypeColor4:
-            ImGui::ColorEdit4(component.UniformName.c_str(), (float*)&component.Vec4);
-                break;
-        }
-    }
-
-    for (const auto& texture : textures) {
-        float aspect = (float)texture.Width / (float)texture.Height;
-        float max_width = ImGui::GetContentRegionAvailWidth();
-        float height = max_width / aspect;
-
-        ImGui::Image(texture.Id, ImVec2(max_width, height), ImVec2(0, 1), ImVec2(1, 0));
-    }
-#endif
 
     return true;
 }
@@ -631,6 +558,8 @@ bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_li
         out_component.UniformType = EGUIUniformTypeVec2;
     } else if (uniform_type == "vec3") {
         out_component.UniformType = EGUIUniformTypeVec3;
+    } else if (uniform_type == "vec4") {
+        out_component.UniformType = EGUIUniformTypeVec4;
     } else {
         ReportError("GUI not supported for uniform type '" + uniform_type + "'");
         return false;
