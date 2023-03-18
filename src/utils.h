@@ -16,3 +16,4 @@ char(&ArrayLength(T (&array)[N]))[N];
 
 std::vector<std::string> SplitString(const std::string& s, char delim);
 std::string ExtractBasePath(const std::string& path);
+std::string ExtractFilenameWithoutExt(const std::string& path);

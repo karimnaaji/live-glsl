@@ -114,3 +114,5 @@ void GUIRender(HGUI gui);
 void GUIResize(HGUI, int widht, int height);
 void GUIDestroy(HGUI gui);
 bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, const std::vector<GUIComponent>& previous_components, GUIComponent& out_component, std::string& out_parse_error);
+bool GUIComponentSave(const std::string& path, const std::vector<GUIComponent>& components);
+bool GUIComponentLoad(const std::string& path, std::vector<GUIComponent>& out_components);

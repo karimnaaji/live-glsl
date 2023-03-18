@@ -68,6 +68,9 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     live_glsl->IsContinuousRendering = false;
     live_glsl->Args = args;
     live_glsl->BasePath = ExtractBasePath(args.Input);
+    
+    std::string shader_name = ExtractFilenameWithoutExt(args.Input);
+    GUIComponentLoad(live_glsl->BasePath + "/" + shader_name + ".ini", live_glsl->GUIComponents);
 
     // Init GLFW Window
     {
@@ -175,6 +178,9 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
     if (live_glsl->VaoId) {
         glDeleteVertexArrays(1, &live_glsl->VaoId);
     }
+    
+    std::string shader_name = ExtractFilenameWithoutExt(live_glsl->ShaderPath);
+    GUIComponentSave(live_glsl->BasePath + "/" + shader_name + ".ini", live_glsl->GUIComponents);
 
     RenderPassDestroy(live_glsl->RenderPasses);
     ScreenLogDestroy(live_glsl->ScreenLogInstance);

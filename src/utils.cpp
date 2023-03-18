@@ -9,7 +9,7 @@ std::vector<std::string> SplitString(const std::string& s, char delim) {
     std::string item;
 
     while (std::getline(ss, item, delim)) {
-        if (!item.empty() && item != ";") {
+        if (!item.empty()) {
             elems.push_back(item);
         }
     }
@@ -28,4 +28,27 @@ std::string ExtractBasePath(const std::string& path) {
     }
 
     return base_path;
+}
+
+std::string ExtractFilenameWithoutExt(const std::string& path) {
+    size_t len = path.length();
+    const char* cpath = path.c_str();
+    const char* start = strrchr(cpath, PATH_DELIMITER);
+    const char* end = strrchr(cpath, '.');
+    
+    if (end == nullptr) {
+        end = &cpath[len];
+    }
+    if (start == nullptr) {
+        start = &cpath[0];
+    } else {
+        start = start + 1;
+    }
+
+    std::string filename;
+    size_t filename_len = end - start;
+    size_t filename_start = start - cpath;
+    filename = path.substr(filename_start, filename_len);
+
+    return filename;
 }

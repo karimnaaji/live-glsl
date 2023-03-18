@@ -12,6 +12,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <fstream>
+#include <sstream>
+
 extern "C" {
 #include <microui/microui.h>
 #include <microui/atlas.inl>
@@ -93,7 +96,7 @@ static void Render(GUI* gui) {
     glBindTexture(GL_TEXTURE_2D, gui->AtlasId);
     glUniform1i(glGetUniformLocation(gui->Program.Handle, "atlas"), 0);
 
-    glm::mat4 proj = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, -1.0f, 1.0f);
+    glm::mat4 proj = glm::ortho(0.0f, (float)gui->Width, 0.0f, (float)gui->Height, -1.0f, 1.0f);
     // Flip the y-axis of the projection matrix
     glm::mat4 flipY = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, -1.0f, 1.0f));
     proj = flipY * proj;
@@ -355,7 +358,7 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
     int component_5_w = (component_1_w / 5.0f) - gui->Ctx->style->padding * 0.5f;
 
     mu_begin(gui->Ctx);
-    if (mu_begin_window_ex(gui->Ctx, "Demo Window", mu_rect(0, 0, window_w, gui->Height), MU_OPT_NOTITLE)) {
+    if (mu_begin_window_ex(gui->Ctx, "", mu_rect(0, 0, window_w, gui->Height), MU_OPT_NOTITLE | MU_OPT_FORCE_RESIZE)) {
         if (mu_header(gui->Ctx, "Shader Log")) {
         }
         if (mu_header(gui->Ctx, "Uniforms")) {
@@ -530,6 +533,122 @@ void GUIDestroy(HGUI handle) {
     delete gui->Ctx;
     ShaderProgramDestroy(gui->Program);
     delete gui;
+}
+
+bool GUIComponentLoad(const std::string& path, std::vector<GUIComponent>& out_components) {
+    std::ifstream file(path);
+    
+    if (!file.is_open()) {
+        return false;
+    }
+    
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string uniformName;
+        std::string type;
+        iss >> uniformName >> type;
+        GUIComponent comp;
+        if (type == "s1") {
+            float value;
+            iss >> value;
+            comp.Type = EGUIComponentTypeSlider1;
+            comp.UniformName = uniformName;
+            comp.Vec1 = value;
+        } else if (type == "s2") {
+            float x, y;
+            iss >> x >> y;
+            comp.Type = EGUIComponentTypeSlider2;
+            comp.UniformName = uniformName;
+            comp.Vec2 = {x, y};
+        } else if (type == "s3") {
+            float x, y, z;
+            iss >> x >> y >> z;
+            comp.Type = EGUIComponentTypeSlider3;
+            comp.UniformName = uniformName;
+            comp.Vec3 = {x, y, z};
+        } else if (type == "s4") {
+            float x, y, z, w;
+            iss >> x >> y >> z >> w;
+            comp.Type = EGUIComponentTypeSlider4;
+            comp.UniformName = uniformName;
+            comp.Vec4 = {x, y, z, w};
+        } else if (type == "c3") {
+            float x, y, z;
+            iss >> x >> y >> z;
+            comp.Type = EGUIComponentTypeColor3;
+            comp.UniformName = uniformName;
+            comp.Vec3 = {x, y, z};
+        } else if (type == "c4") {
+            float x, y, z, w;
+            iss >> x >> y >> z >> w;
+            comp.Type = EGUIComponentTypeColor4;
+            comp.UniformName = uniformName;
+            comp.Vec4 = {x, y, z, w};
+        }
+        out_components.push_back(comp);
+    }
+    
+    file.close();
+    return true;
+}
+
+
+bool GUIComponentSave(const std::string& path, const std::vector<GUIComponent>& components) {
+    std::ofstream file(path);
+    
+    if (!file.is_open()) {
+        return false;
+    }
+    
+    for (const GUIComponent& component : components) {
+        switch (component.Type) {
+            case EGUIComponentTypeSlider1:
+                file << component.UniformName << " s1 ";
+                file << component.Vec1;
+                file << std::endl;
+                break;
+            case EGUIComponentTypeSlider2:
+                file << component.UniformName << " s2 ";
+                file << component.Vec2.x << " ";
+                file << component.Vec2.y;
+                file << std::endl;
+                break;
+            case EGUIComponentTypeSlider3:
+                file << component.UniformName << " s3 ";
+                file << component.Vec3.x << " ";
+                file << component.Vec3.y << " ";
+                file << component.Vec3.z;
+                file << std::endl;
+                break;
+            case EGUIComponentTypeSlider4:
+                file << component.UniformName << " s4 ";
+                file << component.Vec4.x << " ";
+                file << component.Vec4.y << " ";
+                file << component.Vec4.z << " ";
+                file << component.Vec4.w;
+                file << std::endl;
+                break;
+            case EGUIComponentTypeColor3:
+                file << component.UniformName << " c3 ";
+                file << component.Vec3.x << " ";
+                file << component.Vec3.y << " ";
+                file << component.Vec3.z;
+                file << std::endl;
+                break;
+            case EGUIComponentTypeColor4:
+                file << component.UniformName << " c4 ";
+                file << component.Vec4.x << " ";
+                file << component.Vec4.y << " ";
+                file << component.Vec4.z << " ";
+                file << component.Vec4.w;
+                file << std::endl;
+                break;
+        }
+    }
+    
+    file.close();
+    return true;
 }
 
 bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, const std::vector<GUIComponent>& previous_components, GUIComponent& out_component, std::string& out_parse_error) {
