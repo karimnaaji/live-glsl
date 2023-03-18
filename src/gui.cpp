@@ -303,6 +303,10 @@ HGUI GUIInit(GLFWwindow* window_handle, int width, int height) {
 
     gui->Ctx->text_width = GetTextWidth;
     gui->Ctx->text_height = GetTextHeight;
+    
+    gui->Ctx->style->colors[MU_COLOR_BORDER].a = 0;
+    gui->Ctx->style->colors[MU_COLOR_WINDOWBG].a = 128;
+    gui->Ctx->style->colors[MU_COLOR_BASE].a = 200;
 
     return gui;
 }
@@ -313,18 +317,10 @@ void GUIResize(HGUI handle, int width, int height) {
     gui->Height = height;
 }
 
-static int UInt8Slider(mu_Context *ctx, unsigned char *value, int low, int high) {
-    static float tmp;
-    mu_push_id(ctx, &value, sizeof(value));
-    tmp = *value;
-    int res = mu_slider_ex(ctx, &tmp, low, high, 0, "%.0f", MU_OPT_ALIGNCENTER);
-    *value = tmp;
-    mu_pop_id(ctx);
-    return res;
-}
-
 bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::vector<GUITexture> textures) {
-    if (gui_components.empty() && textures.empty()) return false;
+    if (gui_components.empty() && textures.empty()) {
+        return false;
+    }
 
     uint32_t components_in_use = 0;
     for (const GUIComponent& component : gui_components) {
@@ -332,79 +328,143 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
             ++components_in_use;
     }
 
-    if (components_in_use == 0 && textures.empty()) return false;
+    if (components_in_use == 0 && textures.empty()) {
+        return false;
+    }
 
     GUI* gui = (GUI*)handle;
+
+    int label_text_w = 150;
     int window_w = 300;
-    int window_2 = (window_w / 2.0f);
-    int window_3 = (window_w / 3.0f);
-    int window_4 = (window_w / 4.0f);
-    int window_5 = (window_w / 5.0f);
+
+    int column_1_w = (int)(window_w * 0.5f);
+    int column_2_w = (int)(window_w * 0.5f) - 15;
+
+    int component_1_w = window_w - label_text_w;
+    int component_2_w = (component_1_w / 2.0f) - gui->Ctx->style->padding * 0.5f;
+    int component_3_w = (component_1_w / 3.0f) - gui->Ctx->style->padding * 0.5f;
+    int component_4_w = (component_1_w / 4.0f) - gui->Ctx->style->padding * 0.5f;
+    int component_5_w = (component_1_w / 5.0f) - gui->Ctx->style->padding * 0.5f;
+
     mu_begin(gui->Ctx);
-    if (mu_begin_window(gui->Ctx, "Demo Window", mu_rect(0, 0, window_w, gui->Height))) {
+    if (mu_begin_window_ex(gui->Ctx, "Demo Window", mu_rect(0, 0, window_w, gui->Height), MU_OPT_NOTITLE)) {
         for (GUIComponent& component : gui_components) {
             if (!component.IsInUse) continue;
             switch (component.Type) {
                 case EGUIComponentTypeSlider1:
+                    mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                    
+                    mu_layout_begin_column(gui->Ctx);
                     mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec1, component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
+                    mu_layout_end_column(gui->Ctx);
+                    
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                    mu_label(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_end_column(gui->Ctx);
+                    
                     break;
                 case EGUIComponentTypeSlider2:
-                    mu_layout_row(gui->Ctx, 2, (int[]) { window_2, -1 }, 0);
+                    mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                    
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 2, (int[]) { component_2_w, -1 }, 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec2[0], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec2[1], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
+                    mu_layout_end_column(gui->Ctx);
+                    
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                    mu_label(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_end_column(gui->Ctx);
+                    
                     break;
                 case EGUIComponentTypeSlider3:
-                    mu_layout_row(gui->Ctx, 3, (int[]) { window_3, window_3, -1 }, 0);
+                    mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                    
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 3, (int[]) { component_3_w, component_3_w, -1 }, 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec3[0], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec3[1], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec3[2], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
+                    mu_layout_end_column(gui->Ctx);
+                    
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                    mu_label(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_end_column(gui->Ctx);
                     break;
                 case EGUIComponentTypeSlider4:
-                    mu_layout_row(gui->Ctx, 4, (int[]) { window_4, window_4, window_4, -1 }, 0);
+                    mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                    
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 4, (int[]) { component_4_w, component_4_w, component_4_w, -1 }, 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec4[0], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec4[1], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec4[2], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
                     mu_slider_ex(gui->Ctx, (float*)&component.Vec4[3], component.SliderRange.Start, component.SliderRange.End, 0.01f, "", 0);
+                    mu_layout_end_column(gui->Ctx);
+                    
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                    mu_label(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_end_column(gui->Ctx);
                     break;
                 case EGUIComponentTypeColor3:
                 {
-                    mu_layout_row(gui->Ctx, 4, (int[]) { window_4, window_4, window_4, -1 }, 0);
+                    mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                    
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 4, (int[]) { component_4_w, component_4_w, component_4_w, -1 }, 0);
+
+                    component.Vec3 *= 255.0f;
+                    mu_slider_ex(gui->Ctx, (float*)&component.Vec3[0], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                    mu_slider_ex(gui->Ctx, (float*)&component.Vec3[1], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                    mu_slider_ex(gui->Ctx, (float*)&component.Vec3[2], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                    component.Vec3 /= 255.0f;
 
                     mu_Color color;
                     color.r = (uint8_t)(component.Vec3.r * 255.0f);
                     color.g = (uint8_t)(component.Vec3.g * 255.0f);
                     color.b = (uint8_t)(component.Vec3.b * 255.0f);
                     color.a = 255;
-                    
-                    UInt8Slider(gui->Ctx, &color.r, 0, 255);
-                    UInt8Slider(gui->Ctx, &color.g, 0, 255);
-                    UInt8Slider(gui->Ctx, &color.b, 0, 255);
-                    
                     mu_draw_rect(gui->Ctx, mu_layout_next(gui->Ctx), color);
+                    mu_layout_end_column(gui->Ctx);
                     
-                    component.Vec3.r = color.r / 255.0f;
-                    component.Vec3.g = color.g / 255.0f;
-                    component.Vec3.b = color.b / 255.0f;
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                    mu_label(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_end_column(gui->Ctx);
                     
                     break;
                 }
                 case EGUIComponentTypeColor4:
                 {
-                    mu_layout_row(gui->Ctx, 5, (int[]) { window_5, window_5, window_5, window_5, -1 }, 0);
+                    mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 5, (int[]) { component_5_w, component_5_w, component_5_w, component_5_w, -1 }, 0);
+                    
+                    component.Vec4 *= 255.0f;
+                    mu_slider_ex(gui->Ctx, (float*)&component.Vec4[0], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                    mu_slider_ex(gui->Ctx, (float*)&component.Vec4[1], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                    mu_slider_ex(gui->Ctx, (float*)&component.Vec4[2], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                    mu_slider_ex(gui->Ctx, (float*)&component.Vec4[3], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                    component.Vec4 /= 255.0f;
                     
                     mu_Color color;
                     color.r = (uint8_t)(component.Vec4.r * 255.0f);
                     color.g = (uint8_t)(component.Vec4.g * 255.0f);
                     color.b = (uint8_t)(component.Vec4.b * 255.0f);
                     color.a = (uint8_t)(component.Vec4.a * 255.0f);
-                    
-                    UInt8Slider(gui->Ctx, &color.r, 0, 255);
-                    UInt8Slider(gui->Ctx, &color.g, 0, 255);
-                    UInt8Slider(gui->Ctx, &color.b, 0, 255);
-                    UInt8Slider(gui->Ctx, &color.a, 0, 255);
-                    
                     mu_draw_rect(gui->Ctx, mu_layout_next(gui->Ctx), color);
+                    mu_layout_end_column(gui->Ctx);
+                    
+                    mu_layout_begin_column(gui->Ctx);
+                    mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                    mu_label(gui->Ctx, component.UniformName.c_str());
+                    mu_layout_end_column(gui->Ctx);
                     
                     component.Vec4.r = color.r / 255.0f;
                     component.Vec4.g = color.g / 255.0f;
