@@ -151,8 +151,8 @@ bool ShaderParserParse(const std::string& base_path, const std::string& path, st
         return false;
     }
 
+    std::vector<GUIComponent> new_components;
     std::vector<GUIComponent> previous_components = components;
-    components.clear();
 
     uint32_t line_number = 0;
     std::string source;
@@ -210,7 +210,7 @@ bool ShaderParserParse(const std::string& base_path, const std::string& path, st
                     return false;
                 }
 
-                components.push_back(component);
+                new_components.push_back(component);
             }
         }
 
@@ -240,6 +240,8 @@ bool ShaderParserParse(const std::string& base_path, const std::string& path, st
         render_passes.back().IsMain = true;
         render_passes.back().Textures = textures;
     }
+
+    components = std::move(new_components);
 
     return true;
 }
