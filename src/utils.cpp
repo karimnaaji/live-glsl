@@ -1,7 +1,7 @@
 #include "utils.h"
 
 #include <sstream>
-#include <string.h>
+#include <filesystem>
 
 std::vector<std::string> SplitString(const std::string& s, char delim) {
     std::vector<std::string> elems;
@@ -18,37 +18,18 @@ std::vector<std::string> SplitString(const std::string& s, char delim) {
 }
 
 std::string ExtractBasePath(const std::string& path) {
-    const char* cpath = path.c_str();
-    const char* last_slash = strrchr(cpath, PATH_DELIMITER);
-
-    std::string base_path;
-    if (last_slash != nullptr) {
-        size_t parent_path_len = last_slash - cpath;
-        base_path = path.substr(0, parent_path_len);
-    }
-
-    return base_path;
+    std::filesystem::path filepath(path);
+    return filepath.parent_path();
 }
 
 std::string ExtractFilenameWithoutExt(const std::string& path) {
-    size_t len = path.length();
-    const char* cpath = path.c_str();
-    const char* start = strrchr(cpath, PATH_DELIMITER);
-    const char* end = strrchr(cpath, '.');
+    std::filesystem::path filepath(path);
+    std::string filename = filepath.filename().string();
+    size_t dot_pos = filename.find_last_of('.');
+
+    if (dot_pos == std::string::npos) {
+        return filename;
+    }
     
-    if (end == nullptr) {
-        end = &cpath[len];
-    }
-    if (start == nullptr) {
-        start = &cpath[0];
-    } else {
-        start = start + 1;
-    }
-
-    std::string filename;
-    size_t filename_len = end - start;
-    size_t filename_start = start - cpath;
-    filename = path.substr(filename_start, filename_len);
-
-    return filename;
+    return filename.substr(0, dot_pos);
 }

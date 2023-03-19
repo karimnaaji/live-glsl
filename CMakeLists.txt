@@ -4,7 +4,7 @@ project(live-glsl)
 option(MACOS_ASAN "Enable ASAN on macOS" OFF)
 
 set(EXECUTABLE_NAME live-glsl)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     set(CMAKE_WIN32_EXECUTABLE ON)
