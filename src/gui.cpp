@@ -819,7 +819,7 @@ bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_li
 
     for (const GUIComponent& previous_component : previous_components) {
         if (previous_component.UniformName == out_component.UniformName) {
-            std::memcpy(&out_component.Data, &previous_component.Data, sizeof(out_component.Data));
+            memcpy(&out_component.Data, &previous_component.Data, sizeof(out_component.Data));
         }
     }
     return true;
