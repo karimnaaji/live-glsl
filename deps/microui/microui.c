@@ -487,7 +487,7 @@ void mu_draw_text(mu_Context *ctx, mu_Font font, const char *str, int len,
 {
   mu_Command *cmd;
   mu_Rect rect = mu_rect(
-    pos.x, pos.y, ctx->text_width(font, str, len), ctx->text_height(font));
+    pos.x, pos.y, ctx->text_width(font, str, len, ctx->user_data), ctx->text_height(font));
   int clipped = mu_check_clip(ctx, rect);
   if (clipped == MU_CLIP_ALL ) { return; }
   if (clipped == MU_CLIP_PART) { mu_set_clip(ctx, mu_get_clip_rect(ctx)); }
@@ -654,7 +654,7 @@ void mu_draw_control_text(mu_Context *ctx, const char *str, mu_Rect rect,
 {
   mu_Vec2 pos;
   mu_Font font = ctx->style->font;
-  int tw = ctx->text_width(font, str, -1);
+  int tw = ctx->text_width(font, str, -1, ctx->user_data);
   mu_push_clip_rect(ctx, rect);
   pos.y = rect.y + (rect.h - ctx->text_height(font)) / 2;
   if (opt & MU_OPT_ALIGNCENTER) {
@@ -712,9 +712,9 @@ void mu_text(mu_Context *ctx, const char *text) {
     do {
       const char* word = p;
       while (*p && *p != ' ' && *p != '\n') { p++; }
-      w += ctx->text_width(font, word, p - word);
+      w += ctx->text_width(font, word, p - word, ctx->user_data);
       if (w > r.w && end != start) { break; }
-      w += ctx->text_width(font, p, 1);
+      w += ctx->text_width(font, p, 1, ctx->user_data);
       end = p++;
     } while (*end && *end != '\n');
     mu_draw_text(ctx, font, start, end - start, mu_vec2(r.x, r.y), color);
@@ -804,7 +804,7 @@ int mu_textbox_raw(mu_Context *ctx, char *buf, int bufsz, mu_Id id, mu_Rect r,
   if (ctx->focus == id) {
     mu_Color color = ctx->style->colors[MU_COLOR_TEXT];
     mu_Font font = ctx->style->font;
-    int textw = ctx->text_width(font, buf, -1);
+    int textw = ctx->text_width(font, buf, -1, ctx->user_data);
     int texth = ctx->text_height(font);
     int ofx = r.w - ctx->style->padding - textw - 1;
     int textx = r.x + mu_min(ofx, ctx->style->padding);
