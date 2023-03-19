@@ -278,16 +278,16 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                     GLuint uniform_location = glGetUniformLocation(render_pass.Program.Handle, gui_component.UniformName.c_str());
                     switch (gui_component.UniformType) {
                         case EGUIUniformTypeFloat:
-                            glUniform1f(uniform_location, gui_component.Vec1);
+                            glUniform1f(uniform_location, gui_component.Data[0]);
                             break;
                         case EGUIUniformTypeVec2:
-                            glUniform2f(uniform_location, gui_component.Vec2.x, gui_component.Vec2.y);
+                            glUniform2f(uniform_location, gui_component.Data[0], gui_component.Data[1]);
                             break;
                         case EGUIUniformTypeVec3:
-                            glUniform3f(uniform_location, gui_component.Vec3.x, gui_component.Vec3.y, gui_component.Vec3.z);
+                            glUniform3f(uniform_location, gui_component.Data[0], gui_component.Data[1], gui_component.Data[2]);
                             break;
                         case EGUIUniformTypeVec4:
-                            glUniform4f(uniform_location, gui_component.Vec4.x, gui_component.Vec4.y, gui_component.Vec4.z, gui_component.Vec4.w);
+                            glUniform4f(uniform_location, gui_component.Data[0], gui_component.Data[1], gui_component.Data[2], gui_component.Data[3]);
                             break;
                     }
                 }

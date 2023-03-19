@@ -53,10 +53,7 @@ struct GUIComponent {
         UniformName = other.UniformName;
         IsInUse = other.IsInUse;
         SliderRange = other.SliderRange;
-        Vec1 = other.Vec1;
-        Vec2 = other.Vec2;
-        Vec3 = other.Vec3;
-        Vec4 = other.Vec4;
+        memcpy(Data, other.Data, sizeof(Data));
     }
     EGUIComponentType Type;
     EGUIUniformType UniformType;
@@ -65,12 +62,7 @@ struct GUIComponent {
     union {
         GUIComponentSliderRange SliderRange;
     };
-    union {
-        float Vec1;
-        vec2 Vec2;
-        vec3 Vec3;
-        vec4 Vec4;
-    };
+    float Data[4];
 };
 
 inline bool GUIIsSliderType(EGUIComponentType type) {
