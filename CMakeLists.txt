@@ -12,12 +12,11 @@ else()
     if (MACOS_ASAN)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
     else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wno-unused-result -Wno-deprecated-declarations")
+        #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wno-unused-result -Wno-deprecated-declarations")
     endif()
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/deps)
-include_directories(${CMAKE_SOURCE_DIR}/deps/fontstash)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glm)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glm/gtc)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/include)
@@ -39,7 +38,6 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/gui.cpp
     ${CMAKE_SOURCE_DIR}/src/filewatcher.cpp
     ${CMAKE_SOURCE_DIR}/src/shader.cpp
-    ${CMAKE_SOURCE_DIR}/src/screenlog.cpp
     ${CMAKE_SOURCE_DIR}/src/liveglsl.cpp
     ${CMAKE_SOURCE_DIR}/src/renderpass.cpp
     ${CMAKE_SOURCE_DIR}/src/shaderparser.cpp

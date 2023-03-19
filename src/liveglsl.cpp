@@ -1,7 +1,6 @@
 #include "liveglsl.h"
 
 #include "utils.h"
-#include "screenlog.h"
 #include "shaderparser.h"
 
 #include <GLFW/glfw3.h>
@@ -26,10 +25,12 @@ void ReloadShaderIfChanged(LiveGLSL* live_glsl, std::string path, bool first_loa
     std::string read_file_error;
     std::vector<RenderPass> render_passes;
     std::vector<std::string> watches;
+    
+    GUIClearLog(live_glsl->GUI);
 
     if (!ShaderParserParse(live_glsl->BasePath, path, watches, render_passes, live_glsl->GUIComponents, read_file_error)) {
         if (!read_file_error.empty()) {
-            ScreenLogBuffer(live_glsl->ScreenLogInstance, read_file_error.c_str());
+            GUILog(live_glsl->GUI, read_file_error);
         }
     } else {
         std::string error;
@@ -37,7 +38,6 @@ void ReloadShaderIfChanged(LiveGLSL* live_glsl, std::string path, bool first_loa
 
         if (live_glsl->ShaderCompiled) {
             RenderPassDestroy(live_glsl->RenderPasses);
-            ScreenLogClear(live_glsl->ScreenLogInstance);
 
             live_glsl->RenderPasses = render_passes;
 
@@ -47,7 +47,7 @@ void ReloadShaderIfChanged(LiveGLSL* live_glsl, std::string path, bool first_loa
                 FileWatcherAddWatch(live_glsl->FileWatcher, watch.c_str());
             }
         } else if (!error.empty()) {
-            ScreenLogBuffer(live_glsl->ScreenLogInstance, error.c_str());
+            GUILog(live_glsl->GUI, error);
         }
 
         glfwPostEmptyEvent();
@@ -142,8 +142,6 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
         glfwSwapInterval(1);
     }
 
-    live_glsl->ScreenLogInstance = ScreenLogCreate(live_glsl->PixelDensity);
-
     live_glsl->GUI = GUIInit(live_glsl->GLFWWindowHandle, args.Width, args.Height);
 
     ReloadShaderIfChanged(live_glsl, args.Input, true);
@@ -183,7 +181,6 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
     GUIComponentSave(live_glsl->BasePath + "/" + shader_name + ".ini", live_glsl->GUIComponents);
 
     RenderPassDestroy(live_glsl->RenderPasses);
-    ScreenLogDestroy(live_glsl->ScreenLogInstance);
     FileWatcherDestroy(live_glsl->FileWatcher);
     GUIDestroy(live_glsl->GUI);
 
@@ -195,18 +192,9 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
 int LiveGLSLRender(LiveGLSL* live_glsl) {
     double previous_time = glfwGetTime();
     uint32_t frame_count = 0;
-    bool sixty_fps = false;
 
     while (!glfwWindowShouldClose(live_glsl->GLFWWindowHandle)) {
         ReloadShaderIfChanged(live_glsl, live_glsl->ShaderPath);
-
-        double current_time = glfwGetTime();
-        ++frame_count;
-        if (current_time - previous_time >= 1.0) {
-            sixty_fps = frame_count >= 60;
-            frame_count = 0;
-            previous_time = current_time;
-        }
 
         double x, y;
         glfwGetCursorPos(live_glsl->GLFWWindowHandle, &x, &y);
@@ -223,27 +211,29 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                     gui_component.IsInUse |= uniform_location != -1;
                 }
             }
+        }
 
-            std::vector<GUITexture> textures;
-            for (const auto& render_pass : live_glsl->RenderPasses) {
-                if (render_pass.TextureId) {
-                    GUITexture guiTexture;
-                    guiTexture.Width = render_pass.Width;
-                    guiTexture.Height = render_pass.Height;
-                    guiTexture.Id = render_pass.TextureId;
-                    textures.push_back(guiTexture);
-                }
-                for (const auto& texture : render_pass.Textures) {
-                    GUITexture guiTexture;
-                    guiTexture.Width = texture.Width;
-                    guiTexture.Height = texture.Height;
-                    guiTexture.Id = texture.Id;
-                    textures.push_back(guiTexture);
-                }
+        std::vector<GUITexture> textures;
+        for (const auto& render_pass : live_glsl->RenderPasses) {
+            if (render_pass.TextureId) {
+                GUITexture guiTexture;
+                guiTexture.Width = render_pass.Width;
+                guiTexture.Height = render_pass.Height;
+                guiTexture.Id = render_pass.TextureId;
+                textures.push_back(guiTexture);
             }
+            for (const auto& texture : render_pass.Textures) {
+                GUITexture guiTexture;
+                guiTexture.Width = texture.Width;
+                guiTexture.Height = texture.Height;
+                guiTexture.Id = texture.Id;
+                textures.push_back(guiTexture);
+            }
+        }
 
-            bool draw_gui = GUINewFrame(live_glsl->GUI, live_glsl->GUIComponents, textures);
+        GUINewFrame(live_glsl->GUI, live_glsl->GUIComponents, textures);
 
+        if (live_glsl->ShaderCompiled) {
             for (const auto& render_pass : live_glsl->RenderPasses) {
                 uint32_t width = render_pass.IsMain ? live_glsl->WindowWidth : render_pass.Width;
                 uint32_t height = render_pass.IsMain ? live_glsl->WindowHeight : render_pass.Height;
@@ -324,16 +314,6 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                 live_glsl->IsContinuousRendering |= glGetUniformLocation(render_pass.Program.Handle, "time") != -1;
             }
 
-            if (live_glsl->Args.Output.empty()) {
-                if (live_glsl->IsContinuousRendering) {
-                    ScreenLogRenderFrameStatus(live_glsl->ScreenLogInstance, live_glsl->WindowWidth * live_glsl->PixelDensity, sixty_fps, live_glsl->PixelDensity);
-                }
-
-                if (draw_gui) {
-                    GUIRender(live_glsl->GUI);
-                }
-            }
-
             if (!live_glsl->Args.Output.empty()) {
                 uint32_t width = live_glsl->WindowWidth * live_glsl->PixelDensity;
                 uint32_t height = live_glsl->WindowHeight * live_glsl->PixelDensity;
@@ -348,10 +328,13 @@ int LiveGLSLRender(LiveGLSL* live_glsl) {
                 }
                 return EXIT_SUCCESS;
             }
+        } else {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
         }
-
-        ScreenLogRender(live_glsl->ScreenLogInstance, live_glsl->PixelDensity);
         
+        GUIRender(live_glsl->GUI);
+
         glfwSwapBuffers(live_glsl->GLFWWindowHandle);
 
         if (live_glsl->IsContinuousRendering) {

@@ -4,7 +4,6 @@
 #include "arguments.h"
 #include "renderpass.h"
 #include "filewatcher.h"
-#include "screenlog.h"
 
 #include <glad/gl.h>
 #include <atomic>
@@ -14,7 +13,6 @@ struct LiveGLSL {
     std::vector<RenderPass> RenderPasses;
     GLFWwindow* GLFWWindowHandle;
     Arguments Args;
-    ScreenLog ScreenLogInstance;
     HFileWatcher FileWatcher;
     HGUI GUI;
     std::string ShaderPath;

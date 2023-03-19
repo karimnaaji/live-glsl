@@ -2,10 +2,10 @@
 
 uniform vec2 resolution;
 
-@path(heightmap_large.png)
+@path(heightmap.png)
 uniform sampler2D tex0;
 uniform vec2 tex0_resolution;
-@path(heightmap_large_ao.png)
+@path(heightmap_ao.png)
 uniform sampler2D tex1;
 
 @slider1(0, 360)
@@ -19,11 +19,11 @@ uniform float shininess;
 uniform float roughness;
 @slider1(0, 1)
 uniform float F;
-@slider1(0, 10)
+@slider1(0, 1)
 uniform float diff_intensity;
-@slider1(0, 10)
+@slider1(0, 1)
 uniform float spec_intensity;
-@slider1(0, 10)
+@slider1(0, 1)
 uniform float ambient_intensity;
 @slider1(0, 10)
 uniform float ao_strength;
@@ -33,7 +33,7 @@ uniform float shadow_strength;
 uniform float shadow_smoothness;
 @slider1(0, 89)
 uniform float shadow_angle;
-@slider1(0, 500)
+@slider1(0, 50)
 uniform float height_scale;
 
 @color3
@@ -155,7 +155,7 @@ void main() {
     float ao = pow(ao(uv), ao_strength);
     float shadow = sample_shadow(uv, L, 3.0);
 
-    vec3 diff = diff_intensity * diff_color * diffuse_lambert(L, N);
+    vec3 diff = diff_intensity * diff_color * diffuse_lambert(L, N) * ao;
     vec3 spec = spec_intensity * spec_color * specularGGX(L, N, V, NdotV, NdotL, roughness, F) * specular_ao(NdotV, ao, roughness);
     vec3 ambient = ambient_intensity * ambient_color;
     vec3 color = tonemap_rheinard(vec3(spec + diff + ambient) * shadow);

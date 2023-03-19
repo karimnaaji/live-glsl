@@ -40,6 +40,8 @@ struct GUI {
     int Height;
     int CursorX;
     int CursorY;
+    std::string Log;
+    bool LogUpdated {false};
 };
 
 static const char key_map[512] = {
@@ -328,6 +330,21 @@ void GUIResize(HGUI handle, int width, int height) {
     gui->Height = height;
 }
 
+void GUILog(HGUI handle, std::string log) {
+    GUI* gui = (GUI*)handle;
+    if (!gui->Log.empty()) {
+        gui->Log += "\n";
+    }
+    gui->Log += log;
+    gui->LogUpdated = true;
+}
+
+void GUIClearLog(HGUI handle) {
+    GUI* gui = (GUI*)handle;
+    gui->Log = "";
+    gui->LogUpdated = true;
+}
+
 bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::vector<GUITexture> textures) {
     if (gui_components.empty() && textures.empty()) {
         return false;
@@ -359,9 +376,14 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
 
     mu_begin(gui->Ctx);
     if (mu_begin_window_ex(gui->Ctx, "", mu_rect(0, 0, window_w, gui->Height), MU_OPT_NOTITLE | MU_OPT_FORCE_RESIZE)) {
-        if (mu_header(gui->Ctx, "Shader Log")) {
-        }
-        if (mu_header(gui->Ctx, "Uniforms")) {
+        if (!gui->Log.empty()) {
+            mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, -1);
+            mu_begin_panel(gui->Ctx, "Log Output");
+            mu_Container* panel = mu_get_current_container(gui->Ctx);
+            mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, -1);
+            mu_text(gui->Ctx, gui->Log.c_str());
+            mu_end_panel(gui->Ctx);
+        } else {
             for (GUIComponent& component : gui_components) {
                 if (!component.IsInUse) continue;
                 switch (component.Type) {
