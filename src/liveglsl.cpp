@@ -6,7 +6,9 @@
 #include <GLFW/glfw3.h>
 #include <atomic>
 
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#endif
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
@@ -62,14 +64,6 @@ void MainLoop(void* user_data) {
     LiveGLSL* live_glsl = (LiveGLSL*)user_data;
     ReloadShaderIfChanged(live_glsl, live_glsl->ShaderPath);
 
-    double current_time = glfwGetTime();
-    ++live_glsl->FrameCount;
-    if (current_time - live_glsl->PreviousTime >= 1.0) {
-        live_glsl->SixtyFps = live_glsl->FrameCount >= 60;
-        live_glsl->FrameCount = 0;
-        live_glsl->PreviousTime = current_time;
-    }
-
     double x, y;
     glfwGetCursorPos(live_glsl->GLFWWindowHandle, &x, &y);
     x *= live_glsl->PixelDensity;
@@ -77,7 +71,6 @@ void MainLoop(void* user_data) {
 
     int mouse_left_state = glfwGetMouseButton(live_glsl->GLFWWindowHandle, GLFW_MOUSE_BUTTON_LEFT);
 
-    printf("%f %f\n", x, y);
     if (live_glsl->ShaderCompiled) {
         for (GUIComponent& gui_component : live_glsl->GUIComponents) {
             gui_component.IsInUse = false;
@@ -86,26 +79,29 @@ void MainLoop(void* user_data) {
                 gui_component.IsInUse |= uniform_location != -1;
             }
         }
+    }
 
-        std::vector<GUITexture> textures;
-        for (const auto& render_pass : live_glsl->RenderPasses) {
-            if (render_pass.TextureId) {
-                GUITexture guiTexture;
-                guiTexture.Width = render_pass.Width;
-                guiTexture.Height = render_pass.Height;
-                guiTexture.Id = (ImTextureID)(intptr_t)render_pass.TextureId;
-                textures.push_back(guiTexture);
-            }
-            for (const auto& texture : render_pass.Textures) {
-                GUITexture guiTexture;
-                guiTexture.Width = texture.Width;
-                guiTexture.Height = texture.Height;
-                guiTexture.Id = (ImTextureID)(intptr_t)texture.Id;
-                textures.push_back(guiTexture);
-            }
+    std::vector<GUITexture> textures;
+    for (const auto& render_pass : live_glsl->RenderPasses) {
+        if (render_pass.TextureId) {
+            GUITexture guiTexture;
+            guiTexture.Width = render_pass.Width;
+            guiTexture.Height = render_pass.Height;
+            guiTexture.Id = render_pass.TextureId;
+            textures.push_back(guiTexture);
         }
+        for (const auto& texture : render_pass.Textures) {
+            GUITexture guiTexture;
+            guiTexture.Width = texture.Width;
+            guiTexture.Height = texture.Height;
+            guiTexture.Id = texture.Id;
+            textures.push_back(guiTexture);
+        }
+    }
 
-        bool draw_gui = GUINewFrame(live_glsl->GUIComponents, textures);
+    GUINewFrame(live_glsl->GUI, live_glsl->GUIComponents, textures);
+
+    if (live_glsl->ShaderCompiled) {
         for (const auto& render_pass : live_glsl->RenderPasses) {
             uint32_t width = render_pass.IsMain ? live_glsl->WindowWidth : render_pass.Width;
             uint32_t height = render_pass.IsMain ? live_glsl->WindowHeight : render_pass.Height;
@@ -146,16 +142,16 @@ void MainLoop(void* user_data) {
                 GLuint uniform_location = glGetUniformLocation(render_pass.Program.Handle, gui_component.UniformName.c_str());
                 switch (gui_component.UniformType) {
                     case EGUIUniformTypeFloat:
-                        glUniform1f(uniform_location, gui_component.Vec1);
+                        glUniform1f(uniform_location, gui_component.Data[0]);
                         break;
                     case EGUIUniformTypeVec2:
-                        glUniform2f(uniform_location, gui_component.Vec2.x, gui_component.Vec2.y);
+                        glUniform2f(uniform_location, gui_component.Data[0], gui_component.Data[1]);
                         break;
                     case EGUIUniformTypeVec3:
-                        glUniform3f(uniform_location, gui_component.Vec3.x, gui_component.Vec3.y, gui_component.Vec3.z);
+                        glUniform3f(uniform_location, gui_component.Data[0], gui_component.Data[1], gui_component.Data[2]);
                         break;
                     case EGUIUniformTypeVec4:
-                        glUniform4f(uniform_location, gui_component.Vec4.x, gui_component.Vec4.y, gui_component.Vec4.z, gui_component.Vec4.w);
+                        glUniform4f(uniform_location, gui_component.Data[0], gui_component.Data[1], gui_component.Data[2], gui_component.Data[3]);
                         break;
                 }
             }
@@ -168,8 +164,7 @@ void MainLoop(void* user_data) {
                 ++texture_unit;
             }
 
-            // glBindVertexArray(live_glsl->VaoId);
-            glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
+            glBindVertexArray(live_glsl->VaoId);
 
             for (auto& render_pass : live_glsl->RenderPasses) {
                 if (render_pass.IsMain) {
@@ -187,16 +182,6 @@ void MainLoop(void* user_data) {
             live_glsl->IsContinuousRendering |= glGetUniformLocation(render_pass.Program.Handle, "time") != -1;
         }
 
-        if (live_glsl->Args.Output.empty()) {
-            if (live_glsl->IsContinuousRendering) {
-                // ScreenLogRenderFrameStatus(live_glsl->ScreenLogInstance, live_glsl->WindowWidth * live_glsl->PixelDensity, live_glsl->SixtyFps, live_glsl->PixelDensity);
-            }
-
-            if (draw_gui) {
-                GUIRender();
-            }
-        }
-
         if (!live_glsl->Args.Output.empty()) {
             uint32_t width = live_glsl->WindowWidth * live_glsl->PixelDensity;
             uint32_t height = live_glsl->WindowHeight * live_glsl->PixelDensity;
@@ -210,9 +195,12 @@ void MainLoop(void* user_data) {
             }
             return;
         }
+    } else {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
     }
-
-    // ScreenLogRender(live_glsl->ScreenLogInstance, live_glsl->PixelDensity);
+    
+    GUIRender(live_glsl->GUI);
 
     glfwSwapBuffers(live_glsl->GLFWWindowHandle);
 

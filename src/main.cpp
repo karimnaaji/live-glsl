@@ -7,7 +7,9 @@
 
 #include "liveglsl.h"
 
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#endif
 
 #if defined(_WIN32)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {

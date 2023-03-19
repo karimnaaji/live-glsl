@@ -360,12 +360,13 @@ HGUI GUIInit(GLFWwindow* window_handle, int width, int height) {
     delete[] rgba8_pixels;
 
     const GLchar* vertex_shader = R"END(
-    in vec2 position;
-    in vec2 uv;
-    in vec4 color;
+    precision mediump float;
+    attribute vec2 position;
+    attribute vec2 uv;
+    attribute vec4 color;
     uniform mat4 proj;
-    out vec2 v_uv;
-    out vec4 v_color;
+    varying vec2 v_uv;
+    varying vec4 v_color;
     void main() {
         gl_Position = proj * vec4(position, 0.0, 1.0);
         v_color = color;
@@ -374,12 +375,13 @@ HGUI GUIInit(GLFWwindow* window_handle, int width, int height) {
     )END";
 
     const GLchar* fragment_shader = R"END(
-    in vec2 v_uv;
-    in vec4 v_color;
+    precision mediump float;
+    varying vec2 v_uv;
+    varying vec4 v_color;
     uniform sampler2D atlas;
-    out vec4 outColor;
+    
     void main() {
-        outColor = texture(atlas, v_uv) * v_color;
+        gl_FragColor = texture2D(atlas, v_uv) * v_color;
     }
     )END";
 
