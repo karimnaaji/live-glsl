@@ -221,6 +221,7 @@ HGUI GUIInit(GLFWwindow* window_handle, int width, int height) {
     gui->Width = width;
     gui->Height = height;
 
+    memset(gui->Atlas, 0x0, sizeof(gui->Atlas));
     gui->Atlas[ MU_ICON_CLOSE ] = { 88, 68, 16, 16 };
     gui->Atlas[ MU_ICON_CHECK ] = { 0, 0, 18, 18 };
     gui->Atlas[ MU_ICON_EXPANDED ] = { 118, 68, 7, 5 };
@@ -323,6 +324,7 @@ HGUI GUIInit(GLFWwindow* window_handle, int width, int height) {
     gui->Atlas[ ATLAS_FONT+126 ] = { 102, 51, 6, 17 };
     gui->Atlas[ ATLAS_FONT+127 ] = { 108, 51, 6, 17 };
 
+    memset(gui->KeyMap, 0x0, sizeof(gui->KeyMap));
     gui->KeyMap[GLFW_KEY_LEFT_SHIFT]    = MU_KEY_SHIFT;
     gui->KeyMap[GLFW_KEY_RIGHT_SHIFT]   = MU_KEY_SHIFT;
     gui->KeyMap[GLFW_KEY_LEFT_CONTROL]  = MU_KEY_CTRL;
@@ -332,6 +334,7 @@ HGUI GUIInit(GLFWwindow* window_handle, int width, int height) {
     gui->KeyMap[GLFW_KEY_ENTER]         = MU_KEY_RETURN;
     gui->KeyMap[GLFW_KEY_BACKSPACE]     = MU_KEY_BACKSPACE;
 
+    memset(gui->MouseMap, 0x0, sizeof(gui->MouseMap));
     gui->MouseMap[GLFW_MOUSE_BUTTON_LEFT]   = MU_MOUSE_LEFT;
     gui->MouseMap[GLFW_MOUSE_BUTTON_RIGHT]  = MU_MOUSE_RIGHT;
     gui->MouseMap[GLFW_MOUSE_BUTTON_MIDDLE] = MU_MOUSE_MIDDLE;
@@ -460,14 +463,15 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
 
     GUI* gui = (GUI*)handle;
     int window_w = 300;
+    int empty_width[1] = {-1};
 
     mu_begin(gui->Ctx);
     if (mu_begin_window_ex(gui->Ctx, "", mu_rect(0, 0, window_w, gui->Height), MU_OPT_NOTITLE | MU_OPT_FORCE_RESIZE)) {
         if (!gui->Log.empty()) {
-            mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, -1);
+            mu_layout_row(gui->Ctx, 1, empty_width, -1);
             mu_begin_panel(gui->Ctx, "Log Output");
             mu_Container* panel = mu_get_current_container(gui->Ctx);
-            mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, -1);
+            mu_layout_row(gui->Ctx, 1, empty_width, -1);
             mu_text(gui->Ctx, gui->Log.c_str());
             mu_end_panel(gui->Ctx);
         } else {
@@ -486,54 +490,62 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                 if (!component.IsInUse) continue;
                 switch (component.Type) {
                     case EGUIComponentTypeSlider1:
-                        mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                        int column_widths[2] = {column_1_w, column_2_w};
+                        mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                        mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_slider_ex(gui->Ctx, (float*)&component.Vec1, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_layout_end_column(gui->Ctx);
                         
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                        mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
                         
                         break;
                     case EGUIComponentTypeSlider2:
-                        mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                        int column_widths[2] = {column_1_w, column_2_w};
+                        mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
+                        int widths[2] = { component_2_w, -1 };
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 2, (int[]) { component_2_w, -1 }, 0);
+                        mu_layout_row(gui->Ctx, 2, widths, 0);
                         mu_slider_ex(gui->Ctx, (float*)&component.Vec2.x, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_slider_ex(gui->Ctx, (float*)&component.Vec2.y, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_layout_end_column(gui->Ctx);
                         
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                        mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
                         
                         break;
                     case EGUIComponentTypeSlider3:
-                        mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                        int column_widths[2] = {column_1_w, column_2_w};
+                        mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 3, (int[]) { component_3_w, component_3_w, -1 }, 0);
+
+                        int widths[3] = { component_3_w, component_3_w, -1 };
+                        mu_layout_row(gui->Ctx, 3, widths, 0);
                         mu_slider_ex(gui->Ctx, (float*)&component.Vec3.x, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_slider_ex(gui->Ctx, (float*)&component.Vec3.y, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_slider_ex(gui->Ctx, (float*)&component.Vec3.z, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_layout_end_column(gui->Ctx);
                         
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                        mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
                         break;
                     case EGUIComponentTypeSlider4:
-                        mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                        int column_widths[2] = {column_1_w, column_2_w};
+                        mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
+                        int widths[4] = { component_4_w, component_4_w, component_4_w, -1 };
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 4, (int[]) { component_4_w, component_4_w, component_4_w, -1 }, 0);
+                        mu_layout_row(gui->Ctx, 4, widths, 0);
                         mu_slider_ex(gui->Ctx, (float*)&component.Vec4.x, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_slider_ex(gui->Ctx, (float*)&component.Vec4.y, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_slider_ex(gui->Ctx, (float*)&component.Vec4.z, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
@@ -541,16 +553,18 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_end_column(gui->Ctx);
                         
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                        mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
                         break;
                     case EGUIComponentTypeColor3:
                     {
-                        mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                        int column_widths[2] = {column_1_w, column_2_w};
+                        mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
+                        int widths[4] = { component_4_w, component_4_w, component_4_w, -1 };
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 4, (int[]) { component_4_w, component_4_w, component_4_w, -1 }, 0);
+                        mu_layout_row(gui->Ctx, 4, widths, 0);
                         
                         component.Vec3.x *= 255.0f;
                         component.Vec3.y *= 255.0f;
@@ -573,7 +587,7 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_end_column(gui->Ctx);
                         
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                        mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
                         
@@ -581,10 +595,12 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                     }
                     case EGUIComponentTypeColor4:
                     {
-                        mu_layout_row(gui->Ctx, 2, (int[]) { column_1_w, column_2_w }, 0);
+                        int column_widths[2] = {column_1_w, column_2_w};
+                        mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
+                        int widths[5] = { component_5_w, component_5_w, component_5_w, component_5_w, -1 };
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 5, (int[]) { component_5_w, component_5_w, component_5_w, component_5_w, -1 }, 0);
+                        mu_layout_row(gui->Ctx, 5, widths, 0);
                         
                         component.Vec4.x *= 255.0f;
                         component.Vec4.y *= 255.0f;
@@ -610,7 +626,7 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_end_column(gui->Ctx);
                         
                         mu_layout_begin_column(gui->Ctx);
-                        mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
+                        mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
 
@@ -783,9 +799,7 @@ bool GUIComponentSave(const std::string& path, const std::vector<GUIComponent>& 
 
 bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_line, const std::string& uniform_line, const std::vector<GUIComponent>& previous_components, GUIComponent& out_component, std::string& out_parse_error) {
     auto ReportError = [&](const std::string& error) {
-        char buffer[33];
-        sprintf(buffer, "%d", line_number);
-        out_parse_error = error + " at line " + buffer;
+        out_parse_error = error + " at line " + std::to_string(line_number);
     };
     if (uniform_line.empty()) {
         ReportError("GUI type not associated with any uniform '" + gui_component_line + "'");
