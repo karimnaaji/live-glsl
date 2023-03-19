@@ -45,7 +45,7 @@ struct vec4 {
 
 struct GUIComponent {
     GUIComponent() {
-        std::memset(this, 0x0, sizeof(GUIComponent));
+        memset(this, 0x0, sizeof(GUIComponent));
     }
     GUIComponent(const GUIComponent& other) {
         Type = other.Type;
