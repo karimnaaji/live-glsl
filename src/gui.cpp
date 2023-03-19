@@ -41,7 +41,6 @@ struct GUI {
     int CursorX;
     int CursorY;
     std::string Log;
-    bool LogUpdated {false};
 };
 
 static const char key_map[512] = {
@@ -336,13 +335,11 @@ void GUILog(HGUI handle, std::string log) {
         gui->Log += "\n";
     }
     gui->Log += log;
-    gui->LogUpdated = true;
 }
 
 void GUIClearLog(HGUI handle) {
     GUI* gui = (GUI*)handle;
     gui->Log = "";
-    gui->LogUpdated = true;
 }
 
 bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::vector<GUITexture> textures) {
@@ -361,18 +358,7 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
     }
 
     GUI* gui = (GUI*)handle;
-
-    int label_text_w = 150;
     int window_w = 300;
-
-    int column_1_w = (int)(window_w * 0.5f);
-    int column_2_w = (int)(window_w * 0.5f) - 15;
-
-    int component_1_w = window_w - label_text_w;
-    int component_2_w = (component_1_w / 2.0f) - gui->Ctx->style->padding * 0.5f;
-    int component_3_w = (component_1_w / 3.0f) - gui->Ctx->style->padding * 0.5f;
-    int component_4_w = (component_1_w / 4.0f) - gui->Ctx->style->padding * 0.5f;
-    int component_5_w = (component_1_w / 5.0f) - gui->Ctx->style->padding * 0.5f;
 
     mu_begin(gui->Ctx);
     if (mu_begin_window_ex(gui->Ctx, "", mu_rect(0, 0, window_w, gui->Height), MU_OPT_NOTITLE | MU_OPT_FORCE_RESIZE)) {
@@ -384,6 +370,17 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
             mu_text(gui->Ctx, gui->Log.c_str());
             mu_end_panel(gui->Ctx);
         } else {
+            int label_text_w = 150;
+
+            int column_1_w = (int)(window_w * 0.5f);
+            int column_2_w = (int)(window_w * 0.5f) - 15;
+
+            int component_1_w = window_w - label_text_w;
+            int component_2_w = (component_1_w / 2.0f) - gui->Ctx->style->padding * 0.5f;
+            int component_3_w = (component_1_w / 3.0f) - gui->Ctx->style->padding * 0.5f;
+            int component_4_w = (component_1_w / 4.0f) - gui->Ctx->style->padding * 0.5f;
+            int component_5_w = (component_1_w / 5.0f) - gui->Ctx->style->padding * 0.5f;
+
             for (GUIComponent& component : gui_components) {
                 if (!component.IsInUse) continue;
                 switch (component.Type) {
