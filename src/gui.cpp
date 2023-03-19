@@ -489,7 +489,7 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
             for (GUIComponent& component : gui_components) {
                 if (!component.IsInUse) continue;
                 switch (component.Type) {
-                    case EGUIComponentTypeSlider1:
+                    case EGUIComponentTypeSlider1: {
                         int column_widths[2] = {column_1_w, column_2_w};
                         mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
@@ -502,9 +502,8 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
-                        
-                        break;
-                    case EGUIComponentTypeSlider2:
+                    } break;
+                    case EGUIComponentTypeSlider2: {
                         int column_widths[2] = {column_1_w, column_2_w};
                         mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
@@ -519,9 +518,8 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
-                        
-                        break;
-                    case EGUIComponentTypeSlider3:
+                    } break;
+                    case EGUIComponentTypeSlider3: {
                         int column_widths[2] = {column_1_w, column_2_w};
                         mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
@@ -538,8 +536,8 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
-                        break;
-                    case EGUIComponentTypeSlider4:
+                    } break;
+                    case EGUIComponentTypeSlider4: {
                         int column_widths[2] = {column_1_w, column_2_w};
                         mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
@@ -556,9 +554,8 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
-                        break;
-                    case EGUIComponentTypeColor3:
-                    {
+                    } break;
+                    case EGUIComponentTypeColor3: {
                         int column_widths[2] = {column_1_w, column_2_w};
                         mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
@@ -590,11 +587,8 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
-                        
-                        break;
-                    }
-                    case EGUIComponentTypeColor4:
-                    {
+                    } break;
+                    case EGUIComponentTypeColor4: {
                         int column_widths[2] = {column_1_w, column_2_w};
                         mu_layout_row(gui->Ctx, 2, column_widths, 0);
                         
@@ -629,9 +623,7 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_row(gui->Ctx, 1, empty_width, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
-
-                        break;
-                    }
+                    } break;
                 }
             }
         }
