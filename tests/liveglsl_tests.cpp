@@ -296,4 +296,37 @@ UTEST(shader_parser, parse_0) {
     T(render_passes[2].Textures[0].Data);
 }
 
+UTEST(utils, utils_split_string) {
+    std::vector<std::string> expected;
+    expected = {"path", "to", "file.txt"};
+    T(SplitString("/path/to/file.txt", '/') == expected);
+    expected = {"example"};
+    T(SplitString("example", '/') == expected);
+    expected = {".hidden"};
+    T(SplitString("/.hidden", '/') == expected);
+    expected = {"path", "with", "no", "extension"};
+    T(SplitString("path/with/no/extension/", '/') == expected);
+    expected = {"hello", "world"};
+    T(SplitString("hello\tworld", '\t') == expected);
+}
+
+UTEST(utils, utils_extract_base_path) {
+    T(ExtractBasePath("/path/to/file.txt") == "/path/to");
+    T(ExtractBasePath("/path/to/another.file.docx") == "/path/to");
+    T(ExtractBasePath("example") == "");
+    T(ExtractBasePath("example.txt") == "");
+    T(ExtractBasePath("./filename.txt") == ".");
+    T(ExtractBasePath("path/with/no/extension/") == "path/with/no/extension");
+    T(ExtractBasePath("") == "");
+}
+
+UTEST(utils, utils_extract_filename_without_ext) {
+    T(ExtractFilenameWithoutExt("/path/to/file.txt") == "file");
+    T(ExtractFilenameWithoutExt("/path/to/another.file.docx") == "another.file");
+    T(ExtractFilenameWithoutExt("example") == "example");
+    T(ExtractFilenameWithoutExt("example.txt") == "example");
+    T(ExtractFilenameWithoutExt("path/with/no/extension/") == "");
+    T(ExtractFilenameWithoutExt("") == "");
+}
+
 UTEST_MAIN();

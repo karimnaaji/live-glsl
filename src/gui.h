@@ -3,8 +3,8 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <cassert>
-#include <cstring>
+#include <assert.h>
+#include <string.h>
 
 #include <glad/gl.h>
 
