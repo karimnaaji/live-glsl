@@ -510,12 +510,8 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_row(gui->Ctx, 3, widths, 0);
                         break;
                     }
+                    case EGUIComponentTypeColor3:
                     case EGUIComponentTypeSlider4: {
-                        int widths[4] = { component_4_w, component_4_w, component_4_w, -1 };
-                        mu_layout_row(gui->Ctx, 4, widths, 0);
-                        break;
-                    }
-                    case EGUIComponentTypeColor3: {
                         int widths[4] = { component_4_w, component_4_w, component_4_w, -1 };
                         mu_layout_row(gui->Ctx, 4, widths, 0);
                         break;
