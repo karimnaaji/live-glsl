@@ -17,15 +17,11 @@ else()
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/deps)
-include_directories(${CMAKE_SOURCE_DIR}/deps/glm)
-include_directories(${CMAKE_SOURCE_DIR}/deps/glm/gtc)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glfw/include)
 include_directories(${CMAKE_SOURCE_DIR}/deps/glad/include)
 include_directories(${CMAKE_SOURCE_DIR}/deps/getopt/include)
 include_directories(${CMAKE_SOURCE_DIR}/tests)
 include_directories(${CMAKE_SOURCE_DIR}/src)
-
-add_subdirectory(${CMAKE_SOURCE_DIR}/deps/glm)
 
 option(GLFW_BUILD_EXAMPLES OFF)
 option(GLFW_BUILD_TESTS OFF)

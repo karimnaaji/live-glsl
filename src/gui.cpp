@@ -8,10 +8,6 @@
 
 #include "shader.h"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <fstream>
 #include <sstream>
 
@@ -97,11 +93,13 @@ static void Render(GUI* gui) {
     glBindTexture(GL_TEXTURE_2D, gui->AtlasId);
     glUniform1i(glGetUniformLocation(gui->Program.Handle, "atlas"), 0);
 
-    glm::mat4 proj = glm::ortho(0.0f, (float)gui->Width, 0.0f, (float)gui->Height, -1.0f, 1.0f);
-    // Flip the y-axis of the projection matrix
-    glm::mat4 flipY = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, -1.0f, 1.0f));
-    proj = flipY * proj;
-    glUniformMatrix4fv(glGetUniformLocation(gui->Program.Handle, "proj"), 1, GL_FALSE, glm::value_ptr(proj));
+    float proj[16] = {
+        2.0f / gui->Width, 0.0f, 0.0f, 0.0f,
+        0.0f, -2.0f / gui->Height, 0.0f, 0.0f,
+        0.0f, 0.0f, -1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f, 1.0f
+    };
+    glUniformMatrix4fv(glGetUniformLocation(gui->Program.Handle, "proj"), 1, GL_FALSE, proj);
 
     glDrawElements(GL_TRIANGLES, gui->QuadCount * 6, GL_UNSIGNED_INT, 0);
 
@@ -403,8 +401,8 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         
                         mu_layout_begin_column(gui->Ctx);
                         mu_layout_row(gui->Ctx, 2, (int[]) { component_2_w, -1 }, 0);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec2[0], component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec2[1], component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec2.x, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec2.y, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_layout_end_column(gui->Ctx);
                         
                         mu_layout_begin_column(gui->Ctx);
@@ -418,9 +416,9 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         
                         mu_layout_begin_column(gui->Ctx);
                         mu_layout_row(gui->Ctx, 3, (int[]) { component_3_w, component_3_w, -1 }, 0);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3[0], component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3[1], component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3[2], component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3.x, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3.y, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3.z, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_layout_end_column(gui->Ctx);
                         
                         mu_layout_begin_column(gui->Ctx);
@@ -433,10 +431,10 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         
                         mu_layout_begin_column(gui->Ctx);
                         mu_layout_row(gui->Ctx, 4, (int[]) { component_4_w, component_4_w, component_4_w, -1 }, 0);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4[0], component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4[1], component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4[2], component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4[3], component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4.x, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4.y, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4.z, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4.w, component.SliderRange.Start, component.SliderRange.End, 0.01f, "%.2f", 0);
                         mu_layout_end_column(gui->Ctx);
                         
                         mu_layout_begin_column(gui->Ctx);
@@ -451,16 +449,22 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_begin_column(gui->Ctx);
                         mu_layout_row(gui->Ctx, 4, (int[]) { component_4_w, component_4_w, component_4_w, -1 }, 0);
                         
-                        component.Vec3 *= 255.0f;
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3[0], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3[1], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3[2], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
-                        component.Vec3 /= 255.0f;
+                        component.Vec3.x *= 255.0f;
+                        component.Vec3.y *= 255.0f;
+                        component.Vec3.z *= 255.0f;
+
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3.x, 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3.y, 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec3.z, 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+
+                        component.Vec3.x /= 255.0f;
+                        component.Vec3.y /= 255.0f;
+                        component.Vec3.z /= 255.0f;
                         
                         mu_Color color;
-                        color.r = (uint8_t)(component.Vec3.r * 255.0f);
-                        color.g = (uint8_t)(component.Vec3.g * 255.0f);
-                        color.b = (uint8_t)(component.Vec3.b * 255.0f);
+                        color.r = (uint8_t)(component.Vec3.x * 255.0f);
+                        color.g = (uint8_t)(component.Vec3.y * 255.0f);
+                        color.b = (uint8_t)(component.Vec3.z * 255.0f);
                         color.a = 255;
                         mu_draw_rect(gui->Ctx, mu_layout_next(gui->Ctx), color);
                         mu_layout_end_column(gui->Ctx);
@@ -479,18 +483,26 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_begin_column(gui->Ctx);
                         mu_layout_row(gui->Ctx, 5, (int[]) { component_5_w, component_5_w, component_5_w, component_5_w, -1 }, 0);
                         
-                        component.Vec4 *= 255.0f;
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4[0], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4[1], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4[2], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
-                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4[3], 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
-                        component.Vec4 /= 255.0f;
+                        component.Vec4.x *= 255.0f;
+                        component.Vec4.y *= 255.0f;
+                        component.Vec4.z *= 255.0f;
+                        component.Vec4.w *= 255.0f;
+
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4.x, 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4.y, 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4.z, 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+                        mu_slider_ex(gui->Ctx, (float*)&component.Vec4.w, 0.0, 255.0f, 0, "%.0f", MU_OPT_ALIGNCENTER);
+
+                        component.Vec4.x /= 255.0f;
+                        component.Vec4.y /= 255.0f;
+                        component.Vec4.z /= 255.0f;
+                        component.Vec4.w /= 255.0f;
                         
                         mu_Color color;
-                        color.r = (uint8_t)(component.Vec4.r * 255.0f);
-                        color.g = (uint8_t)(component.Vec4.g * 255.0f);
-                        color.b = (uint8_t)(component.Vec4.b * 255.0f);
-                        color.a = (uint8_t)(component.Vec4.a * 255.0f);
+                        color.r = (uint8_t)(component.Vec3.x * 255.0f);
+                        color.g = (uint8_t)(component.Vec3.y * 255.0f);
+                        color.b = (uint8_t)(component.Vec3.z * 255.0f);
+                        color.a = (uint8_t)(component.Vec4.w * 255.0f);
                         mu_draw_rect(gui->Ctx, mu_layout_next(gui->Ctx), color);
                         mu_layout_end_column(gui->Ctx);
                         
@@ -498,11 +510,7 @@ bool GUINewFrame(HGUI handle, std::vector<GUIComponent>& gui_components, std::ve
                         mu_layout_row(gui->Ctx, 1, (int[]) { -1 }, 0);
                         mu_label(gui->Ctx, component.UniformName.c_str());
                         mu_layout_end_column(gui->Ctx);
-                        
-                        component.Vec4.r = color.r / 255.0f;
-                        component.Vec4.g = color.g / 255.0f;
-                        component.Vec4.b = color.b / 255.0f;
-                        component.Vec4.a = color.a / 255.0f;
+
                         break;
                     }
                 }
@@ -769,7 +777,7 @@ bool GUIComponentParse(uint32_t line_number, const std::string& gui_component_li
 
     for (const GUIComponent& previous_component : previous_components) {
         if (previous_component.UniformName == out_component.UniformName) {
-            std::memcpy(&out_component.Vec1, &previous_component.Vec1, sizeof(glm::vec4));
+            std::memcpy(&out_component.Vec1, &previous_component.Vec1, sizeof(vec4));
         }
     }
     return true;

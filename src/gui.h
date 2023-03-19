@@ -6,8 +6,6 @@
 #include <cassert>
 #include <cstring>
 
-#include <glm.hpp>
-
 #include <glad/gl.h>
 
 struct GLFWwindow;
@@ -31,6 +29,18 @@ enum EGUIUniformType {
 struct GUIComponentSliderRange {
     float Start;
     float End;
+};
+
+struct vec2 {
+    float x,y;
+};
+
+struct vec3 {
+    float x,y,z;
+};
+
+struct vec4 {
+    float x,y,z,w;
 };
 
 struct GUIComponent {
@@ -57,9 +67,9 @@ struct GUIComponent {
     };
     union {
         float Vec1;
-        glm::vec2 Vec2;
-        glm::vec3 Vec3;
-        glm::vec4 Vec4;
+        vec2 Vec2;
+        vec3 Vec3;
+        vec4 Vec4;
     };
 };
 
