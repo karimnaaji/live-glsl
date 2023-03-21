@@ -7,8 +7,10 @@
 
 #include "liveglsl.h"
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
+#ifdef EMSCRIPTEN
+#ifndef SHADER_INPUT
+#error "SHADER_INPUT not defined"
+#endif
 #endif
 
 #if defined(_WIN32)
@@ -41,15 +43,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 int main(int argc, const char **argv) {
 #endif
     Arguments args;
-    args.Input = "simple.frag";
-    // if (!ArgumentsParse(argc, argv, args)) {
-        // return EXIT_FAILURE;
-    // }
+#ifdef EMSCRIPTEN
+    args.Input = SHADER_INPUT;
+#else
+    if (!ArgumentsParse(argc, argv, args)) {
+        return EXIT_FAILURE;
+    }
+#endif
 
     LiveGLSL* live_glsl = LiveGLSLCreate(args);
-    // if (!live_glsl) {
-    //     return EXIT_FAILURE;
-    // }
+    if (!live_glsl) {
+        return EXIT_FAILURE;
+    }
 
     bool res = LiveGLSLRender(live_glsl);
     LiveGLSLDestroy(live_glsl);

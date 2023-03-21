@@ -40,7 +40,11 @@ GLuint ShaderProgramCompile(const std::string src, GLenum type, std::string& err
 }
 
 bool ShaderProgramCreate(ShaderProgram& shader_program, const std::string& fragment_source, const std::string& vertex_source, std::string& error) {
-    std::string shader_prelude = ""; //"#version 150\n";
+#ifdef EMSCRIPTEN
+    std::string shader_prelude = "";
+#else 
+    std::string shader_prelude = "#version 150\n";
+#endif
 
     shader_program.VertexShaderHandle = ShaderProgramCompile(shader_prelude + vertex_source, GL_VERTEX_SHADER, error);
     shader_program.FragmentShaderHandle = ShaderProgramCompile(shader_prelude + fragment_source, GL_FRAGMENT_SHADER, error);

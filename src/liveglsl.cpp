@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <atomic>
 
-#ifdef __EMSCRIPTEN__
+#ifdef EMSCRIPTEN
 #include <emscripten.h>
 #endif
 
@@ -215,7 +215,11 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     LiveGLSL* live_glsl = new LiveGLSL();
 
     live_glsl->ShaderFileChanged.store(false);
-    live_glsl->FileWatcher = nullptr; //FileWatcherCreate(OnShaderChange, live_glsl, 16);
+#ifdef EMSCRIPTEN
+    live_glsl->FileWatcher = nullptr;
+#else
+    live_glsl->FileWatcher = FileWatcherCreate(OnShaderChange, live_glsl, 16);
+#endif
     live_glsl->ShaderCompiled = false;
     live_glsl->ShaderPath = args.Input;
     live_glsl->WindowWidth = args.Width;
