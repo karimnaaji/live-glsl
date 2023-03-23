@@ -22,6 +22,8 @@ GLuint ShaderProgramCompile(const std::string src, GLenum type, std::string& err
     glShaderSource(shader, 1, &source, NULL);
     glCompileShader(shader);
     glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
+    
+    printf("%s\n", src.c_str());
 
     if (!compile_status) {
         GLint length = 0;
@@ -77,7 +79,6 @@ bool ShaderProgramCreate(ShaderProgram& shader_program, const std::string& fragm
 }
 
 void ShaderProgramDetach(const ShaderProgram& shader_program) {
-    return;
     if (shader_program.VertexShaderHandle) {
         glDetachShader(shader_program.VertexShaderHandle, GL_VERTEX_SHADER);
     }

@@ -8,10 +8,10 @@
 
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
-#endif
-
+#else
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
+#endif
 
 void OnShaderChange(void* user_data, const char* file) {
     LiveGLSL* live_glsl = (LiveGLSL*)user_data;
@@ -115,7 +115,6 @@ void MainLoop(void* user_data) {
             assert(render_pass.Program.Handle != 0);
             glUseProgram(render_pass.Program.Handle);
 
-            glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
             glViewport(0, 0, width, height);
 
             glUniform2f(glGetUniformLocation(render_pass.Program.Handle, "resolution"), width, height);
@@ -164,8 +163,10 @@ void MainLoop(void* user_data) {
                 ++texture_unit;
             }
 
+#ifndef EMSCRIPTEN
             glBindVertexArray(live_glsl->VaoId);
-
+#endif
+            glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
             for (auto& render_pass : live_glsl->RenderPasses) {
                 if (render_pass.IsMain) {
                     GLint position_attrib = glGetAttribLocation(render_pass.Program.Handle, "position");
@@ -175,6 +176,7 @@ void MainLoop(void* user_data) {
             }
 
             glDrawArrays(GL_TRIANGLES, 0, 6);
+            glBindVertexArray(0);
         }
 
         live_glsl->IsContinuousRendering = false;
@@ -183,6 +185,7 @@ void MainLoop(void* user_data) {
         }
 
         if (!live_glsl->Args.Output.empty()) {
+#ifndef EMSCRIPTEN
             uint32_t width = live_glsl->WindowWidth * live_glsl->PixelDensity;
             uint32_t height = live_glsl->WindowHeight * live_glsl->PixelDensity;
             unsigned char* pixels = new unsigned char[3 * width * height];
@@ -194,6 +197,7 @@ void MainLoop(void* user_data) {
                 fprintf(stderr, "Failed to write image to file: %s\n", live_glsl->Args.Output.c_str());
             }
             return;
+#endif
         }
     } else {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -319,14 +323,14 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
              1.0f, -1.0f,
         };
 
-        // glGenVertexArrays(1, &live_glsl->VaoId);
-        // glBindVertexArray(live_glsl->VaoId);
+#ifndef EMSCRIPTEN
+        glGenVertexArrays(1, &live_glsl->VaoId);
+        glBindVertexArray(live_glsl->VaoId);
+#endif
         glGenBuffers(1, &live_glsl->VertexBufferId);
         glBindBuffer(GL_ARRAY_BUFFER, live_glsl->VertexBufferId);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     }
-
-    printf("Done init\n");
 
     return live_glsl;
 }
@@ -336,10 +340,12 @@ void LiveGLSLDestroy(LiveGLSL* live_glsl) {
         glDeleteBuffers(1, &live_glsl->VertexBufferId);
     }
 
+#ifndef EMSCRIPTEN
     if (live_glsl->VaoId) {
         glDeleteVertexArrays(1, &live_glsl->VaoId);
     }
-    
+#endif
+
     if (live_glsl->Args.EnableIni) {
         std::string shader_name = ExtractFilenameWithoutExt(live_glsl->ShaderPath);
         GUIComponentSave(live_glsl->BasePath + "/" + shader_name + ".ini", live_glsl->GUIComponents);

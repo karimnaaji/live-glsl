@@ -20,14 +20,13 @@ struct LiveGLSL {
     int WindowWidth;
     int WindowHeight;
     GLuint VertexBufferId;
+#ifndef EMSCRIPTEN
     GLuint VaoId;
+#endif
     float PixelDensity;
     std::atomic<bool> ShaderFileChanged;
     bool ShaderCompiled;
     bool IsContinuousRendering;
-    double PreviousTime;
-    uint32_t FrameCount {0};
-    bool SixtyFps {false};
 };
 
 LiveGLSL* LiveGLSLCreate(const Arguments& args);

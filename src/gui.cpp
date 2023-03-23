@@ -53,6 +53,7 @@ static void Render(GUI* gui) {
     
     glUseProgram(gui->Program.Handle);
 
+    glBindVertexArray(gui->VaoId);
     glBindBuffer(GL_ARRAY_BUFFER, gui->VertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(gui->VertexArray), gui->VertexArray, GL_STREAM_DRAW);
     GLint position_attrib = glGetAttribLocation(gui->Program.Handle, "position");
@@ -359,6 +360,7 @@ HGUI GUIInit(GLFWwindow* window_handle, int width, int height) {
 
     delete[] rgba8_pixels;
 
+#ifdef EMSCRIPTEN
     const GLchar* vertex_shader = R"END(
     precision mediump float;
     attribute vec2 position;
@@ -384,6 +386,32 @@ HGUI GUIInit(GLFWwindow* window_handle, int width, int height) {
         gl_FragColor = texture2D(atlas, v_uv) * v_color;
     }
     )END";
+#else
+    const GLchar* vertex_shader = R"END(
+    in vec2 position;
+    in vec2 uv;
+    in vec4 color;
+    uniform mat4 proj;
+    out vec2 v_uv;
+    out vec4 v_color;
+    void main() {
+        gl_Position = proj * vec4(position, 0.0, 1.0);
+        v_color = color;
+        v_uv = uv;
+    }
+    )END";
+
+    const GLchar* fragment_shader = R"END(
+    in vec2 v_uv;
+    in vec4 v_color;
+    out vec4 color;
+    uniform sampler2D atlas;
+
+    void main() {
+        color = texture(atlas, v_uv) * v_color;
+    }
+    )END";
+#endif
 
     std::string error;
     if (!ShaderProgramCreate(gui->Program, fragment_shader, vertex_shader, error)) {
@@ -668,6 +696,10 @@ bool GUIComponentLoad(const std::string& path, std::vector<GUIComponent>& out_co
 
 
 bool GUIComponentSave(const std::string& path, const std::vector<GUIComponent>& components) {
+    if (components.empty()) {
+        return false;
+    }
+
     std::ofstream file(path);
     
     if (!file.is_open()) {
