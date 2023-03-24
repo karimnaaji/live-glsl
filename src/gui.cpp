@@ -33,6 +33,7 @@ struct GUI {
     GLuint UVBuffer;
     GLuint ColorBuffer;
     GLuint IndexBuff;
+    GLuint VaoId;
     int QuadCount;
     int Width;
     int Height;
@@ -45,7 +46,9 @@ static void Render(GUI* gui) {
     if (gui->QuadCount == 0) {
         return;
     }
-
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_CULL_FACE);
@@ -88,6 +91,9 @@ static void Render(GUI* gui) {
     glUniformMatrix4fv(glGetUniformLocation(gui->Program.Handle, "proj"), 1, GL_FALSE, proj);
 
     glDrawElements(GL_TRIANGLES, gui->QuadCount * 6, GL_UNSIGNED_INT, 0);
+    
+    glUseProgram(0);
+    glBindVertexArray(0);
 
     gui->QuadCount = 0;
 }
@@ -417,22 +423,27 @@ HGUI GUIInit(GLFWwindow* window_handle, int width, int height) {
     if (!ShaderProgramCreate(gui->Program, fragment_shader, vertex_shader, error)) {
         printf("%s\n", error.c_str());
     }
+    
+    glGenVertexArrays(1, &gui->VaoId);
+    glBindVertexArray(gui->VaoId);
 
     glGenBuffers(1, &gui->ColorBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, gui->ColorBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(gui->ColorArray), nullptr, GL_STREAM_DRAW);
-
+    
     glGenBuffers(1, &gui->UVBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, gui->UVBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(gui->UVArray), nullptr, GL_STREAM_DRAW);
-
+    
     glGenBuffers(1, &gui->VertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, gui->VertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(gui->VertexArray), nullptr, GL_STREAM_DRAW);
-
+    
     glGenBuffers(1, &gui->IndexBuff);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gui->IndexBuff);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(gui->IndexArray), nullptr, GL_STREAM_DRAW);
+    
+    glBindVertexArray(0);
 
     gui->Ctx = new mu_Context();
     mu_init(gui->Ctx);
@@ -622,6 +633,10 @@ void GUIDestroy(HGUI handle) {
     GUI* gui = (GUI*)handle;
     delete gui->Ctx;
     ShaderProgramDestroy(gui->Program);
+    glDeleteTextures(1, &gui->AtlasId);
+    glDeleteBuffers(1, &gui->VertexBuffer);
+    glDeleteBuffers(1, &gui->ColorBuffer);
+    glDeleteVertexArrays(1, &gui->VaoId);
     delete gui;
 }
 

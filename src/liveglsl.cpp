@@ -177,6 +177,7 @@ void MainLoop(void* user_data) {
 
             glDrawArrays(GL_TRIANGLES, 0, 6);
             glBindVertexArray(0);
+            glUseProgram(0);
         }
 
         live_glsl->IsContinuousRendering = false;
