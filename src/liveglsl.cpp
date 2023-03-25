@@ -8,6 +8,7 @@
 
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
+#include <emscripten/html5.h>
 #else
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
@@ -63,6 +64,16 @@ void ReloadShaderIfChanged(LiveGLSL* live_glsl, std::string path, bool first_loa
 void MainLoop(void* user_data) {
     LiveGLSL* live_glsl = (LiveGLSL*)user_data;
     ReloadShaderIfChanged(live_glsl, live_glsl->ShaderPath);
+
+#ifdef EMSCRIPTEN
+    double width, height;
+    emscripten_get_element_css_size("#canvas", &width, &height);
+    live_glsl->WindowWidth = width;
+    live_glsl->WindowHeight = height;
+    live_glsl->PixelDensity = emscripten_get_device_pixel_ratio();
+    emscripten_set_canvas_element_size("#canvas", width, height);
+    GUIResize(live_glsl->GUI, width, height);
+#endif
 
     double x, y;
     glfwGetCursorPos(live_glsl->GLFWWindowHandle, &x, &y);
@@ -232,7 +243,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
     live_glsl->IsContinuousRendering = false;
     live_glsl->Args = args;
     live_glsl->BasePath = ExtractBasePath(args.Input);
-    
+
     if (live_glsl->Args.EnableIni) {
         std::string shader_name = ExtractFilenameWithoutExt(args.Input);
         GUIComponentLoad(live_glsl->BasePath + "/" + shader_name + ".ini", live_glsl->GUIComponents);

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>live-glsl</title>
+    <style>
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
+      canvas.emscripten { border: 0px none; background-color: black; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+    </style>
+  </head>
+  <body>
+    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+    <script type='text/javascript'>
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {})(),
+        canvas: (function() {
+          return document.getElementById('canvas');
+        })(),
+        setStatus: function(text) {},
+        totalDependencies: 0,
+        monitorRunDependencies: function(left) {}
+      };
+      const c = document.getElementById('canvas');
+      c.width = window.innerWidth;
+      c.height = window.innerHeight;
+    </script>
+    {{{ SCRIPT }}}
+  </body>
+</html>

@@ -58,7 +58,7 @@ if (EMSCRIPTEN)
     set(SHADER_INPUT_SRC "${CMAKE_CURRENT_SOURCE_DIR}/shaders/simple.frag")
     set(SHADER_INPUT_DST "simple.frag")
     set(EMSCRIPTEN_GENERATE_HTML ON)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --preload-file ${SHADER_INPUT_SRC}@${SHADER_INPUT_DST}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --preload-file ${SHADER_INPUT_SRC}@${SHADER_INPUT_DST} --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/shell.html")
     target_compile_definitions(${EXECUTABLE_NAME} PRIVATE -DSHADER_INPUT="${SHADER_INPUT_DST}")
 endif()
 
