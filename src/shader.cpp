@@ -23,8 +23,6 @@ GLuint ShaderProgramCompile(const std::string src, GLenum type, std::string& err
     glCompileShader(shader);
     glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
     
-    printf("%s\n", src.c_str());
-
     if (!compile_status) {
         GLint length = 0;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
@@ -34,6 +32,7 @@ GLuint ShaderProgramCompile(const std::string src, GLenum type, std::string& err
         
         error = info;
 
+        printf("%s\n", error.c_str());
         glDeleteShader(shader);
         return 0;
     }
@@ -65,6 +64,9 @@ bool ShaderProgramCreate(ShaderProgram& shader_program, const std::string& fragm
 
     glDeleteShader(shader_program.FragmentShaderHandle);
     glDeleteShader(shader_program.VertexShaderHandle);
+
+    shader_program.FragmentShaderHandle = 0;
+    shader_program.VertexShaderHandle = 0;
 
     GLint is_linked;
     glGetProgramiv(shader_program.Handle, GL_LINK_STATUS, &is_linked);

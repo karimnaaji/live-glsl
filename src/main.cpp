@@ -7,10 +7,32 @@
 
 #include "liveglsl.h"
 
+static LiveGLSL* live_glsl;
+
 #ifdef EMSCRIPTEN
 #ifndef SHADER_INPUT
 #error "SHADER_INPUT not defined"
 #endif
+
+extern "C" {
+
+void LiveGLSLSetShader(const char* path) {
+    if (live_glsl) {
+        LiveGLSLDestroy(live_glsl);
+        Arguments args;
+        args.Input = path;
+        live_glsl = LiveGLSLCreate(args);
+    }
+}
+
+void LiveGLSLSetCanvasId(const char* id) {
+    if (live_glsl) {
+        live_glsl->CanvasId = id;
+    }
+}
+
+};
+
 #endif
 
 #if defined(_WIN32)
@@ -51,7 +73,7 @@ int main(int argc, const char **argv) {
     }
 #endif
 
-    LiveGLSL* live_glsl = LiveGLSLCreate(args);
+    live_glsl = LiveGLSLCreate(args);
     if (!live_glsl) {
         return EXIT_FAILURE;
     }

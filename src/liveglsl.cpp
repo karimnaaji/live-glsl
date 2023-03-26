@@ -67,11 +67,11 @@ void MainLoop(void* user_data) {
 
 #ifdef EMSCRIPTEN
     double width, height;
-    emscripten_get_element_css_size("#canvas", &width, &height);
+    emscripten_get_element_css_size(("#" + live_glsl->CanvasId).c_str(), &width, &height);
     live_glsl->WindowWidth = width;
     live_glsl->WindowHeight = height;
     live_glsl->PixelDensity = emscripten_get_device_pixel_ratio();
-    emscripten_set_canvas_element_size("#canvas", width, height);
+    emscripten_set_canvas_element_size(("#" + live_glsl->CanvasId).c_str(), width, height);
     GUIResize(live_glsl->GUI, width, height);
 #endif
 
@@ -206,7 +206,7 @@ void MainLoop(void* user_data) {
             int res = stbi_write_png(live_glsl->Args.Output.c_str(), width, height, 3, pixels, 3 * width);
             delete[] pixels;
             if (res == 0) {
-                fprintf(stderr, "Failed to write image to file: %s\n", live_glsl->Args.Output.c_str());
+                printf("Failed to write image to file: %s\n", live_glsl->Args.Output.c_str());
             }
             return;
 #endif
@@ -271,7 +271,7 @@ LiveGLSL* LiveGLSLCreate(const Arguments& args) {
         glfwMakeContextCurrent(live_glsl->GLFWWindowHandle);
         glfwSetWindowUserPointer(live_glsl->GLFWWindowHandle, live_glsl);
         glfwSetErrorCallback([](int error, const char* description) {
-            fprintf(stderr, "Error: %s\n", description);
+            printf("Error: %s\n", description);
         });
 
         glfwSetWindowSizeCallback(live_glsl->GLFWWindowHandle, [](GLFWwindow* window, int width, int height) {

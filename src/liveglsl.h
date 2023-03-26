@@ -27,6 +27,7 @@ struct LiveGLSL {
     std::atomic<bool> ShaderFileChanged;
     bool ShaderCompiled;
     bool IsContinuousRendering;
+    std::string CanvasId = "canvas";
 };
 
 LiveGLSL* LiveGLSLCreate(const Arguments& args);

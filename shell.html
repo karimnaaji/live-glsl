@@ -10,27 +10,36 @@
         height: 100%;
         margin: 0;
       }
-      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
-      canvas.emscripten { border: 0px none; background-color: black; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+      .emscripten {
+        border: 0px none;
+        background-color: black;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      #canvas0 {
+        height: 50%;
+      }
     </style>
   </head>
   <body>
-    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+    <canvas class="emscripten" id="canvas0" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     <script type='text/javascript'>
       var Module = {
-        preRun: [],
-        postRun: [],
-        print: (function() {})(),
+        preInit: function() {
+          Module.setShader =  Module.cwrap('LiveGLSLSetShader', 'void', ['string']);
+          Module.setCanvasId =  Module.cwrap('LiveGLSLSetCanvasId', 'void', ['string']);
+        },
+        postRun: function() {
+          Module.setShader('/Users/karim/Desktop/dev/live-glsl/shaders/plasma.frag');
+          Module.setCanvasId('canvas0');
+        },
         canvas: (function() {
-          return document.getElementById('canvas');
-        })(),
-        setStatus: function(text) {},
-        totalDependencies: 0,
-        monitorRunDependencies: function(left) {}
+          return document.getElementById('canvas0');
+        })()
       };
-      const c = document.getElementById('canvas');
-      c.width = window.innerWidth;
-      c.height = window.innerHeight;
     </script>
     {{{ SCRIPT }}}
   </body>
